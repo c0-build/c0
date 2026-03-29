@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>C&#x2070;</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#F5F0E8; --bg-deep:#EAE4DA; --surface:#FDFAF5; --surface-2:#F0EAE0; --border:#E2DAD0;
+      --text-1:#26231F; --text-2:#8A837A; --text-3:#B3ADA5;
+      --accent:#C4A882; --success:#7A9E7E; --success-bg:rgba(122,158,126,0.12);
+      --serif:"Playfair Display",Georgia,serif; --sans:"Inter",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+      --r-sm:12px; --r-md:18px; --r-lg:24px; --r-xl:28px;
+      --shadow-sm:0 2px 20px rgba(42,36,30,0.07),0 1px 4px rgba(42,36,30,0.04);
+      --shadow-card:0 8px 48px rgba(42,36,30,0.10),0 2px 10px rgba(42,36,30,0.05);
+      --shadow-lift:0 12px 64px rgba(42,36,30,0.13),0 3px 14px rgba(42,36,30,0.06);
+      --ease:cubic-bezier(0.22,1,0.36,1); --t-fast:160ms; --t-base:240ms; --t-slow:380ms;
+      --gap:28px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html{height:100%;-webkit-text-size-adjust:100%;}
+    body{font-family:var(--sans);background:var(--bg);color:var(--text-1);min-height:100%;min-height:-webkit-fill-available;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
+    button{font-family:var(--sans);cursor:pointer;border:none;background:none;}
+
+    /* ── SHELL ── */
+    .full-screen{display:none;max-width:430px;margin:0 auto;min-height:100vh;min-height:-webkit-fill-available;flex-direction:column;background:var(--bg);}
+    .full-screen.is-visible{display:flex;}
+    @media(min-width:640px){
+      body{background:var(--bg-deep);display:flex;align-items:flex-start;justify-content:center;padding:48px 24px 80px;min-height:100vh;}
+      .full-screen{min-height:auto;border-radius:44px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,0.06),0 24px 72px rgba(0,0,0,0.12),0 6px 18px rgba(0,0,0,0.06);}
+      .full-screen.is-visible{min-height:700px;}
+    }
+
+    /* ── SIGN-IN ── */
+    #signin-screen{align-items:center;justify-content:center;padding:48px 36px;gap:0;}
+    .signin-wordmark{font-family:var(--serif);font-size:48px;font-weight:400;letter-spacing:0.08em;color:var(--text-1);margin-bottom:12px;}
+    .signin-wordmark sup{font-size:0.5em;vertical-align:super;line-height:0;letter-spacing:0;}
+    .signin-tagline{font-size:15px;font-weight:300;color:var(--text-2);text-align:center;line-height:1.7;max-width:220px;margin-bottom:56px;}
+    .signin-btn{display:flex;align-items:center;gap:12px;padding:17px 28px;background:var(--text-1);color:var(--surface);border-radius:var(--r-md);font-size:15px;font-weight:400;letter-spacing:0.03em;width:100%;max-width:280px;justify-content:center;transition:opacity var(--t-fast) ease,transform var(--t-fast) ease;}
+    .signin-btn:hover{opacity:0.87;} .signin-btn:active{transform:scale(0.97);}
+    .signin-note{font-size:12px;font-weight:300;color:var(--text-3);text-align:center;margin-top:20px;line-height:1.65;}
+    .signin-status{font-size:13px;font-weight:300;color:var(--text-3);margin-top:16px;display:none;}
+
+    /* ── ONBOARDING ── */
+    #onboarding-screen{box-sizing:border-box;width:100%;padding-top:max(56px,calc(env(safe-area-inset-top)+28px));padding-right:28px;padding-bottom:40px;padding-left:28px;}
+    .ob-wordmark{font-family:var(--serif);font-size:17px;font-weight:400;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:32px;}
+    .ob-wordmark sup{font-size:0.52em;vertical-align:super;line-height:0;letter-spacing:0;}
+    .ob-dots{display:flex;gap:6px;margin-bottom:36px;}
+    .ob-dot{width:5px;height:5px;border-radius:50%;background:var(--border);transition:background var(--t-base) ease;}
+    .ob-dot.active{background:var(--text-1);}
+    #ob-body{flex:1;}
+    .ob-question{font-family:var(--serif);font-size:28px;font-weight:400;line-height:1.22;color:var(--text-1);margin-bottom:8px;letter-spacing:-0.01em;}
+    .ob-sub{font-size:14px;font-weight:300;color:var(--text-2);line-height:1.7;margin-bottom:28px;}
+
+    /* Activity dual-stepper — open layout, big numbers, no boxes */
+    .ob-activity-list{display:flex;flex-direction:column;}
+    .ob-activity-card{padding:22px 0;border-bottom:1px solid var(--border);}
+    .ob-activity-card:last-child{border-bottom:none;}
+    .ob-activity-name{font-size:15px;font-weight:400;color:var(--text-1);letter-spacing:-0.01em;}
+    .ob-activity-hint{font-size:12px;font-weight:300;color:var(--text-3);margin-top:2px;line-height:1.5;}
+    .ob-dual-ctrl{display:grid;grid-template-columns:1fr 1fr;margin-top:18px;}
+    .ob-stepper-group{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 0;}
+    .ob-stepper-group:first-child{border-right:1px solid var(--border);}
+    .ob-stepper-label{font-size:9px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-3);}
+    .ob-stepper-inline{display:flex;align-items:center;justify-content:center;gap:22px;}
+    .ob-step-btn{width:34px;height:34px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);color:var(--text-2);display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;transition:all var(--t-fast) ease;flex-shrink:0;}
+    .ob-step-btn:hover{border-color:var(--accent);color:var(--text-1);} .ob-step-btn:active{transform:scale(0.88);}
+    .ob-step-val{font-family:var(--serif);font-size:38px;font-weight:400;color:var(--text-1);text-align:center;min-width:44px;line-height:1;}
+
+    /* Split selection */
+    .split-list{display:flex;flex-direction:column;gap:10px;}
+    .split-card{padding:18px 22px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-md);text-align:left;transition:all var(--t-fast) ease;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-sm);}
+    .split-card:active{transform:scale(0.98);}
+    .split-card.is-selected{border-color:var(--text-1);box-shadow:var(--shadow-card);}
+    .split-card-name{font-size:15px;font-weight:400;color:var(--text-1);}
+    .split-card-hint{font-size:12px;font-weight:300;color:var(--text-3);margin-top:3px;line-height:1.5;}
+    .split-card-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all var(--t-fast) ease;}
+    .split-card.is-selected .split-card-check{background:var(--text-1);border-color:var(--text-1);}
+    .split-card.is-selected .split-card-name{font-weight:500;}
+
+    /* Aha screen */
+    .aha-card{background:var(--surface);border-radius:var(--r-xl);padding:36px 28px;margin-top:8px;box-shadow:var(--shadow-card);}
+    .aha-list{display:flex;flex-direction:column;}
+    .aha-item{font-size:15px;font-weight:300;color:var(--text-2);line-height:1.65;padding:16px 0 16px 24px;position:relative;border-bottom:1px solid var(--border);}
+    .aha-item:last-child{border-bottom:none;padding-bottom:0;}
+    .aha-item:first-child{padding-top:0;}
+    .aha-item::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:var(--accent);}
+
+    /* Onboarding nav */
+    .ob-nav{display:flex;align-items:center;justify-content:space-between;padding-top:32px;}
+    .ob-back{font-size:14px;font-weight:300;color:var(--text-3);padding:8px 0;transition:color var(--t-fast) ease;}
+    .ob-back:hover{color:var(--text-2);} .ob-back:disabled{opacity:0;pointer-events:none;}
+    .ob-next{padding:17px 34px;background:var(--text-1);color:var(--surface);border-radius:var(--r-md);font-size:15px;font-weight:400;letter-spacing:0.04em;transition:opacity var(--t-fast) ease,transform var(--t-fast) ease;}
+    .ob-next:hover{opacity:0.87;} .ob-next:active{transform:scale(0.97);}
+
+    /* ── APP SCREENS ── */
+    .screen{display:none;flex-direction:column;flex:1;opacity:0;transform:translateY(8px);transition:opacity var(--t-slow) var(--ease),transform var(--t-slow) var(--ease);}
+    .screen.is-active{display:flex;opacity:1;transform:translateY(0);}
+    .screen.is-entering{display:flex;opacity:0;transform:translateY(8px);}
+    .screen-header{padding:max(56px,calc(env(safe-area-inset-top)+28px)) var(--gap) 20px;}
+    .header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+    .wordmark{font-family:var(--serif);font-size:17px;font-weight:400;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-3);}
+    .wordmark sup{font-size:0.52em;vertical-align:super;line-height:0;letter-spacing:0;}
+    .signout-btn{font-size:12px;font-weight:300;color:var(--text-3);padding:4px 0;transition:color var(--t-fast) ease;}
+    .signout-btn:hover{color:var(--text-2);}
+    .page-title{font-family:var(--serif);font-size:36px;font-weight:400;line-height:1.08;color:var(--text-1);letter-spacing:-0.02em;}
+    .page-subtitle{font-size:13.5px;font-weight:300;color:var(--text-3);margin-top:6px;line-height:1.5;}
+    .screen-body{flex:1;padding:16px var(--gap) 40px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+    /* ── NAV ── */
+    .bottom-nav{display:flex;justify-content:space-around;align-items:center;padding:12px 8px;padding-bottom:max(16px,env(safe-area-inset-bottom));background:var(--surface);border-top:1px solid rgba(226,218,208,0.7);flex-shrink:0;}
+    .nav-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 22px;border-radius:var(--r-md);color:var(--text-3);min-width:72px;transition:color var(--t-fast) ease;}
+    .nav-item.is-active{color:var(--text-1);} .nav-item:active{transform:scale(0.94);}
+    .nav-icon{width:22px;height:22px;stroke-width:1.5;}
+    .nav-label{font-size:10px;font-weight:400;letter-spacing:0.04em;text-transform:uppercase;}
+
+    /* ── TODAY SCREEN COMPONENTS ── */
+
+    /* Recommendation card */
+    .rec-card{background:var(--surface);border-radius:var(--r-xl);padding:36px 30px 34px;margin-bottom:24px;box-shadow:var(--shadow-lift);animation:rise 300ms var(--ease) both;}
+    @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+    .rec-tag{font-size:10px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px;}
+    .rec-headline{font-family:var(--serif);font-size:34px;font-weight:400;line-height:1.1;color:var(--text-1);margin-bottom:18px;letter-spacing:-0.02em;}
+    .rec-context{font-size:14px;font-weight:300;color:var(--text-2);line-height:1.75;margin-bottom:10px;}
+    .rec-detail{font-size:13px;font-weight:300;color:var(--text-3);line-height:1.7;}
+    .rec-lighter-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:400;color:var(--accent);margin-top:18px;padding:5px 13px;background:rgba(196,168,130,0.1);border-radius:100px;border:1px solid rgba(196,168,130,0.28);}
+
+    /* Action buttons */
+    .action-stack{display:flex;flex-direction:column;gap:14px;animation:rise 320ms var(--ease) 60ms both;}
+    .btn-start{display:block;width:100%;padding:20px 24px;background:var(--text-1);color:var(--surface);border-radius:var(--r-md);font-size:15px;font-weight:400;letter-spacing:0.04em;text-align:center;transition:opacity var(--t-fast) ease,transform var(--t-fast) ease;}
+    .btn-start:hover{opacity:0.87;} .btn-start:active{transform:scale(0.98);opacity:0.82;}
+    .adjust-row{display:flex;justify-content:center;gap:10px;}
+    .btn-adjust{padding:12px 24px;background:transparent;border:1.5px solid var(--border);border-radius:100px;font-size:13px;font-weight:300;color:var(--text-2);white-space:nowrap;transition:all var(--t-fast) ease;}
+    .btn-adjust:hover{border-color:var(--accent);color:var(--text-1);}
+    .btn-adjust:active{transform:scale(0.96);}
+    .btn-adjust.is-active{background:var(--surface-2);border-color:var(--text-2);color:var(--text-1);font-weight:400;}
+
+    /* Change options — floating pills, no container */
+    .change-options{padding:4px 0;animation:rise 160ms var(--ease) both;}
+    .change-label{display:none;}
+    .change-pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+    .change-pill{padding:10px 22px;background:transparent;border:1.5px solid var(--border);border-radius:100px;font-size:13px;font-weight:300;color:var(--text-2);transition:all var(--t-fast) ease;white-space:nowrap;}
+    .change-pill:hover{border-color:var(--accent);color:var(--text-1);}
+    .change-pill:active{transform:scale(0.96);}
+    .change-pill.is-selected{background:var(--text-1);border-color:var(--text-1);color:rgba(255,255,255,0.9);font-weight:400;}
+
+    /* Not today link */
+    .not-today-link{display:block;text-align:center;font-size:12.5px;font-weight:300;color:var(--text-3);padding:12px 0 4px;transition:color var(--t-fast) ease;}
+    .not-today-link:hover{color:var(--text-2);}
+
+    /* Completion */
+    .completion-wrap{animation:rise 320ms var(--ease) both;}
+    .completion-card{background:var(--surface);border-radius:var(--r-xl);padding:52px 32px 48px;text-align:center;margin-bottom:16px;box-shadow:var(--shadow-card);}
+    .check-ring{width:56px;height:56px;border-radius:50%;background:var(--success-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;animation:pop 380ms cubic-bezier(0.34,1.56,0.64,1) 80ms both;}
+    @keyframes pop{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+    .completion-heading{font-family:var(--serif);font-size:30px;font-weight:400;color:var(--text-1);margin-bottom:8px;letter-spacing:-0.01em;}
+    .completion-sub{font-size:14px;font-weight:300;color:var(--text-2);line-height:1.7;}
+    .completion-chip{display:inline-block;font-size:12.5px;color:var(--text-2);background:var(--surface-2);padding:7px 18px;border-radius:100px;margin-top:24px;}
+
+    /* Rest card */
+    .rest-card{background:var(--surface);border-radius:var(--r-xl);padding:52px 32px 48px;text-align:center;animation:rise 280ms var(--ease) both;box-shadow:var(--shadow-card);}
+    .rest-heading{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--text-2);margin-bottom:10px;letter-spacing:-0.01em;}
+    .rest-sub{font-size:14px;font-weight:300;color:var(--text-3);line-height:1.7;}
+
+    /* Shared */
+    .loading-state{display:flex;align-items:center;justify-content:center;padding:80px 24px;gap:6px;}
+    .loading-dot{width:5px;height:5px;border-radius:50%;background:var(--text-3);animation:blink 1.2s ease infinite;}
+    .loading-dot:nth-child(2){animation-delay:0.2s;} .loading-dot:nth-child(3){animation-delay:0.4s;}
+    @keyframes blink{0%,80%,100%{opacity:0.2;}40%{opacity:1;}}
+    .quiet-note{font-size:13px;font-weight:300;color:var(--text-3);line-height:1.75;text-align:center;padding:20px 12px;font-style:italic;}
+
+    /* ── HISTORY ── */
+    .history-list{display:flex;flex-direction:column;gap:10px;}
+    .history-row{display:flex;align-items:center;gap:16px;background:var(--surface);border-radius:var(--r-md);padding:18px 20px;box-shadow:var(--shadow-sm);animation:rise 200ms var(--ease) both;}
+    .h-status{width:36px;height:36px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .h-status.done{background:var(--success-bg);} .h-status.skipped{background:var(--surface-2);}
+    .h-body{flex:1;min-width:0;}
+    .h-date{font-size:11.5px;color:var(--text-3);margin-bottom:3px;letter-spacing:0.01em;}
+    .h-rec{font-size:15px;font-weight:400;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .h-meta{font-size:11.5px;color:var(--text-3);margin-top:3px;}
+
+    /* ── PROGRESS ── */
+    .week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:32px;}
+    .week-cell{display:flex;flex-direction:column;align-items:center;gap:7px;}
+    .week-day-lbl{font-size:9px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-3);}
+    .week-dot{width:36px;height:36px;border-radius:50%;background:var(--surface-2);border:1.5px solid transparent;display:flex;align-items:center;justify-content:center;transition:all var(--t-base) var(--ease);box-shadow:var(--shadow-sm);}
+    .week-dot.done{background:var(--success);border-color:var(--success);box-shadow:0 4px 16px rgba(122,158,126,0.28);}
+    .week-dot.today{border-color:var(--accent);}
+    .stat-row{background:var(--surface);border-radius:var(--r-md);padding:20px 22px;margin-bottom:10px;display:flex;align-items:baseline;justify-content:space-between;box-shadow:var(--shadow-sm);}
+    .stat-lbl{font-size:14px;font-weight:300;color:var(--text-2);}
+    .stat-val{font-family:var(--serif);font-size:28px;font-weight:400;color:var(--text-1);letter-spacing:-0.01em;}
+    .stat-unit{font-size:12px;font-weight:300;color:var(--text-3);margin-left:6px;}
+    .empty{text-align:center;padding:80px 24px;animation:rise 240ms var(--ease) both;}
+    .empty-heading{font-family:var(--serif);font-size:24px;font-weight:400;color:var(--text-2);margin-bottom:10px;}
+    .empty-sub{font-size:14px;font-weight:300;color:var(--text-3);line-height:1.7;}
+    .spacer-lg{height:48px;}
+    .label{font-size:9.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px;}
+
+    /* ── PAST-DAY LOGGING ── */
+    .past-log-row{display:flex;justify-content:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--border);}
+    .past-log-toggle-btn{font-size:12.5px;font-weight:300;color:var(--text-3);padding:6px 0;transition:color var(--t-fast) ease;}
+    .past-log-toggle-btn:hover{color:var(--text-2);}
+    .past-log-picker{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--r-md);padding:14px 18px;margin-top:12px;box-shadow:var(--shadow-sm);animation:rise 180ms var(--ease) both;}
+    .past-log-picker input[type="date"]{flex:1;font-family:var(--sans);font-size:14px;font-weight:300;color:var(--text-1);background:transparent;border:none;outline:none;padding:0;min-width:0;}
+    .past-log-picker input[type="date"]::-webkit-calendar-picker-indicator{opacity:0.35;cursor:pointer;}
+    .past-log-go{font-size:13px;font-weight:400;color:var(--text-1);padding:8px 16px;background:var(--surface-2);border-radius:var(--r-sm);white-space:nowrap;transition:all var(--t-fast) ease;flex-shrink:0;}
+    .past-log-go:hover{opacity:0.75;}
+    .date-view-banner{display:flex;align-items:center;justify-content:space-between;background:var(--surface-2);border-radius:var(--r-md);padding:12px 18px;margin-bottom:24px;animation:rise 180ms var(--ease) both;}
+    .date-view-label{font-size:13px;font-weight:400;color:var(--text-2);}
+    .date-view-back{font-size:12px;font-weight:300;color:var(--text-3);transition:color var(--t-fast) ease;padding:2px 0;}
+    .date-view-back:hover{color:var(--text-2);}
+  </style>
+</head>
+<body>
+
+<!-- SIGN-IN -->
+<div id="signin-screen" class="full-screen">
+  <div class="signin-wordmark">C<sup>0</sup></div>
+  <p class="signin-tagline">One small action, every day.</p>
+  <button class="signin-btn" id="signin-btn">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#FDFAF5" opacity=".9"/>
+      <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#FDFAF5" opacity=".7"/>
+      <path d="M3.964 10.706C3.786 10.166 3.682 9.59 3.682 9c0-.59.104-1.166.282-1.706V4.962H.957C.347 6.175 0 7.548 0 9s.348 2.825.957 4.038l3.007-2.332z" fill="#FDFAF5" opacity=".6"/>
+      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z" fill="#FDFAF5" opacity=".8"/>
+    </svg>
+    Continue with Google
+  </button>
+  <p class="signin-note">Your data stays private and syncs across all your devices.</p>
+  <p class="signin-status" id="signin-status"></p>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding-screen" class="full-screen">
+  <div class="ob-wordmark">C<sup>0</sup></div>
+  <div class="ob-dots" id="ob-dots"></div>
+  <div id="ob-body"></div>
+  <div class="ob-nav">
+    <button class="ob-back" id="ob-back">Back</button>
+    <button class="ob-next" id="ob-next">Continue</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="full-screen">
+  <div id="screen-today" class="screen is-active" role="main">
+    <div class="screen-header">
+      <div class="header-row">
+        <div class="wordmark">C<sup>0</sup></div>
+        <button class="signout-btn" id="signout-btn">Sign out</button>
+      </div>
+      <div class="page-title" id="greeting-text">Good morning</div>
+      <div class="page-subtitle" id="today-date-label">&mdash;</div>
+    </div>
+    <div class="screen-body" id="today-body"></div>
+  </div>
+
+  <div id="screen-history" class="screen" role="main">
+    <div class="screen-header">
+      <div class="header-row"><div class="wordmark">C<sup>0</sup></div></div>
+      <div class="page-title">History</div>
+      <div class="page-subtitle">Your recent sessions</div>
+    </div>
+    <div class="screen-body" id="history-body"></div>
+  </div>
+
+  <div id="screen-progress" class="screen" role="main">
+    <div class="screen-header">
+      <div class="header-row"><div class="wordmark">C<sup>0</sup></div></div>
+      <div class="page-title">Progress</div>
+      <div class="page-subtitle">A quiet view of consistency</div>
+    </div>
+    <div class="screen-body" id="progress-body"></div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-item is-active" data-screen="today" aria-label="Today">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+      <span class="nav-label">Today</span>
+    </button>
+    <button class="nav-item" data-screen="history" aria-label="History">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/>
+      </svg>
+      <span class="nav-label">History</span>
+    </button>
+    <button class="nav-item" data-screen="progress" aria-label="Progress">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="nav-label">Progress</span>
+    </button>
+  </nav>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, deleteDoc, collection, query, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDHmOzt8zB3KzJp5-NBWSoJ1ZKRACOxq-c",
+  authDomain:"c0-app.firebaseapp.com",
+  projectId:"c0-app",
+  storageBucket:"c0-app.firebasestorage.app",
+  messagingSenderId:"811435411579",
+  appId:"1:811435411579:web:5c7394c1fd74e7c53fbade"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+const auth  = getAuth(fbApp);
+const gProvider = new GoogleAuthProvider();
+
+/* =========================================================
+   RECOMMENDATION LIBRARY
+   activityKey -> energy (low/medium/high) -> time (10/20/30+) -> {t, d}
+   Strength split keys: full | upper | lower | push | pull | legs
+   ========================================================= */
+const REC = {
+  cardio: {
+    low:    { "10":{t:"A short walk",       d:"Step outside. Low pressure."},
+              "20":{t:"An easy walk",        d:"Unhurried. No destination. Just move."},
+              "30+":{t:"A long easy walk",   d:"Slow pace, outside if you can."} },
+    medium: { "10":{t:"A brisk walk",        d:"Fast enough to change your energy."},
+              "20":{t:"A short run",          d:"Easy pace. Let your body lead."},
+              "30+":{t:"A comfortable run",  d:"Settle into a pace and go."} },
+    high:   { "10":{t:"A quick run",         d:"Short but real effort."},
+              "20":{t:"A solid run",          d:"Good pace, full effort."},
+              "30+":{t:"A full run",          d:"Today calls for it."} }
+  },
+  strength_full: {
+    low:    { "10":{t:"Bodyweight circuit",  d:"Simple movements. No load needed."},
+              "20":{t:"Light strength",       d:"A few exercises, gentle effort."},
+              "30+":{t:"Light full body",    d:"Full range, your own pace."} },
+    medium: { "10":{t:"Short full body",     d:"Compound movements, done well."},
+              "20":{t:"Full body",            d:"Balanced and steady."},
+              "30+":{t:"Full body session",  d:"Full range, moderate pace."} },
+    high:   { "10":{t:"Quick full body",    d:"Every major muscle group."},
+              "20":{t:"Full body session",   d:"Compound movements. Good effort."},
+              "30+":{t:"Full body workout",  d:"Take your time. Move well."} }
+  },
+  strength_upper: {
+    low:    { "10":{t:"Light upper body",   d:"Gentle pressing and pulling."},
+              "20":{t:"Easy upper body",    d:"No heavy lifting. Light and controlled."},
+              "30+":{t:"Upper body flow",   d:"Stretch and light strength."} },
+    medium: { "10":{t:"Short upper body",  d:"A few movements, done well."},
+              "20":{t:"Upper body",         d:"Moderate effort. Full range."},
+              "30+":{t:"Upper body session",d:"No rush. Chest, back, shoulders."} },
+    high:   { "10":{t:"Quick upper body",  d:"Push and pull. Short and sharp."},
+              "20":{t:"Upper body session", d:"Chest, back, shoulders. Full effort."},
+              "30+":{t:"Upper body workout",d:"Take your time. Do it well."} }
+  },
+  strength_lower: {
+    low:    { "10":{t:"Light lower body",  d:"Gentle hip and glute movement."},
+              "20":{t:"Easy lower body",   d:"Light work. Hips, hamstrings, glutes."},
+              "30+":{t:"Lower body flow",  d:"Mobility and light strength."} },
+    medium: { "10":{t:"Short lower body", d:"Squats and hinges. Done well."},
+              "20":{t:"Lower body",        d:"Steady effort. Full range."},
+              "30+":{t:"Lower body session",d:"No rush. Legs and glutes."} },
+    high:   { "10":{t:"Quick lower body", d:"Squats, hips, hamstrings."},
+              "20":{t:"Lower body session",d:"Legs and glutes. Full effort."},
+              "30+":{t:"Lower body workout",d:"Take your time. Go deep."} }
+  },
+  strength_push: {
+    low:    { "10":{t:"Light push day",   d:"Chest, shoulders, triceps - gentle."},
+              "20":{t:"Easy push day",    d:"Pressing movements, light load."},
+              "30+":{t:"Push day",        d:"Chest and shoulder work at your pace."} },
+    medium: { "10":{t:"Short push day",  d:"A few pressing movements, done well."},
+              "20":{t:"Push day",         d:"Chest, shoulders, triceps."},
+              "30+":{t:"Push session",    d:"Full pressing work. No rush."} },
+    high:   { "10":{t:"Quick push day",  d:"Focused pressing work."},
+              "20":{t:"Push session",     d:"Chest, shoulders, triceps. Full effort."},
+              "30+":{t:"Push workout",    d:"Every pressing muscle."} }
+  },
+  strength_pull: {
+    low:    { "10":{t:"Light pull day",  d:"Back and biceps - gentle."},
+              "20":{t:"Easy pull day",   d:"Rows and pulls, light load."},
+              "30+":{t:"Pull day",       d:"Back and bicep work at your pace."} },
+    medium: { "10":{t:"Short pull day", d:"A few pulling movements, done well."},
+              "20":{t:"Pull day",        d:"Back, biceps, rear delts."},
+              "30+":{t:"Pull session",   d:"Full pulling work. No rush."} },
+    high:   { "10":{t:"Quick pull day", d:"Focused pulling work."},
+              "20":{t:"Pull session",    d:"Back and biceps. Full effort."},
+              "30+":{t:"Pull workout",   d:"Every pulling muscle."} }
+  },
+  strength_legs: {
+    low:    { "10":{t:"Light leg day",  d:"Gentle hip and leg movement."},
+              "20":{t:"Easy leg day",   d:"Squats and hinges, light load."},
+              "30+":{t:"Leg day",       d:"Lower body work at your pace."} },
+    medium: { "10":{t:"Short leg day", d:"Squats and hinges, done well."},
+              "20":{t:"Leg day",        d:"Quads, hamstrings, glutes."},
+              "30+":{t:"Leg session",   d:"Full lower body. No rush."} },
+    high:   { "10":{t:"Quick leg day", d:"Focused lower body."},
+              "20":{t:"Leg session",    d:"Quads, hamstrings, glutes. Full effort."},
+              "30+":{t:"Leg workout",   d:"Take your time. Go heavy."} }
+  },
+  mobility: {
+    low:    { "10":{t:"A short stretch",    d:"Gentle. Five minutes is enough."},
+              "20":{t:"Easy stretch",        d:"Light and slow. Let the tension go."},
+              "30+":{t:"Gentle mobility",    d:"Take your time. No agenda."} },
+    medium: { "10":{t:"A stretch",          d:"Hit the tight spots. Breathe."},
+              "20":{t:"Stretch and mobility",d:"Easy flow. Good for recovery."},
+              "30+":{t:"Mobility flow",      d:"Steady, unhurried. Full range."} },
+    high:   { "10":{t:"Dynamic stretch",    d:"Active movements. Open up."},
+              "20":{t:"Mobility and stretch",d:"Full range. Take your time."},
+              "30+":{t:"Full mobility flow", d:"Deep stretches, deliberate movement."} }
+  }
+};
+
+const DONE_MSGS = [
+  {h:"Done.",    s:"This counts."},
+  {h:"Logged.",  s:"You showed up."},
+  {h:"Done.",    s:"Small actions add up."},
+  {h:"Logged.",  s:"A small action is still an action."},
+  {h:"Done.",    s:"Keep that quiet."},
+  {h:"There.",   s:"That's all it takes."}
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let currentUser = null, userProfile = null;
+
+// App navigation + logging state
+const S = {
+  screen:   "today",
+  logDate:  null
+};
+
+// Today screen transient state (reset on each fresh renderToday)
+const T = {
+  lighter:       false,
+  forceActivity: null,   // 'cardio' | 'strength' | 'mobility' | null
+  showChange:    false
+};
+
+// Onboarding state
+const OB = {
+  step:    1,
+  current: {cardio:0, strength:0, mobility:0},
+  target:  {cardio:0, strength:0, mobility:0},
+  split:   "full_body"
+};
+
+/* =========================================================
+   FIRESTORE
+   ========================================================= */
+async function loadProfile() {
+  const snap = await getDoc(doc(db,"users",currentUser.uid,"data","profile"));
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  // Migrate old profile shape {routine, goal} -> {current, target}
+  if (d.routine && !d.target) {
+    return { current:{...d.routine}, target:{...d.routine}, split: d.split || "full_body" };
+  }
+  return d;
+}
+async function saveProfile(d) {
+  await setDoc(doc(db,"users",currentUser.uid,"data","profile"), {...d, savedAt:new Date().toISOString()});
+}
+async function dbSave(e) {
+  await setDoc(doc(db,"users",currentUser.uid,"entries",e.date), e);
+}
+async function dbGetAll() {
+  const q    = query(collection(db,"users",currentUser.uid,"entries"), orderBy("date","desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data());
+}
+async function dbForDate(ds) {
+  const snap = await getDoc(doc(db,"users",currentUser.uid,"entries",ds));
+  return snap.exists() ? snap.data() : null;
+}
+
+/* =========================================================
+   UTILS
+   ========================================================= */
+function todayStr()     { return new Date().toISOString().split("T")[0]; }
+function yesterdayStr() { const d=new Date(); d.setDate(d.getDate()-1); return d.toISOString().split("T")[0]; }
+function activeDate()   { return S.logDate || todayStr(); }
+function formatFull(ds) { return new Date(ds+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"}); }
+function formatShort(ds){ return new Date(ds+"T12:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function getGreeting()  { const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
+function seededPick(arr,seed){ let n=0; for(let i=0;i<seed.length;i++) n+=seed.charCodeAt(i); return arr[n%arr.length]; }
+function esc(s) { const d=document.createElement("div"); d.appendChild(document.createTextNode(String(s))); return d.innerHTML; }
+function loading()      { return `<div class="loading-state"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>`; }
+function daysSince(ds)  { return Math.round((new Date(todayStr()+"T12:00:00")-new Date(ds+"T12:00:00"))/86400000); }
+
+/* =========================================================
+   CONTINUITY ENGINE
+   ========================================================= */
+function computeRec(profile, history, energy, time, forceType) {
+  if (!profile) return genericRec(energy, time);
+
+  const target = profile.target || profile.routine || {};
+  const split  = profile.split  || "full_body";
+  const done   = history.filter(e => e.completed);
+
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+  const cutStr = cutoff.toISOString().split("T")[0];
+  const recent = done.filter(e => e.date >= cutStr);
+
+  const wk = {
+    cardio:   recent.filter(e => e.activityType==="cardio").length,
+    strength: recent.filter(e => e.activityType==="strength").length,
+    mobility: recent.filter(e => e.activityType==="mobility").length
+  };
+  const last = {
+    cardio:   done.find(e => e.activityType==="cardio"),
+    strength: done.find(e => e.activityType==="strength"),
+    mobility: done.find(e => e.activityType==="mobility")
+  };
+  const ds = {
+    cardio:   last.cardio   ? daysSince(last.cardio.date)   : 999,
+    strength: last.strength ? daysSince(last.strength.date) : 999,
+    mobility: last.mobility ? daysSince(last.mobility.date) : 999
+  };
+
+  let activityType;
+
+  if (forceType) {
+    activityType = forceType;
+  } else {
+    const types = ["cardio","strength","mobility"].filter(t => (target[t]||0) > 0);
+    if (!types.length) return genericRec(energy, time);
+    const scores = {};
+    for (const t of types) {
+      const deficit = Math.max(0, (target[t]||0) - wk[t]);
+      scores[t] = deficit * 2.5 + ds[t] / Math.max(1, 7/(target[t]||1));
+    }
+    activityType = types.slice().sort((a,b) => scores[b]-scores[a])[0];
+  }
+
+  // Determine strength split key
+  let splitKey = activityType;
+  if (activityType === "strength") {
+    if (split === "upper_lower") {
+      const ls = last.strength?.splitTarget;
+      splitKey = "strength_" + (ls==="upper" ? "lower" : "upper");
+    } else if (split === "push_pull_legs") {
+      const ls = last.strength?.splitTarget;
+      if      (ls==="push") splitKey = "strength_pull";
+      else if (ls==="pull") splitKey = "strength_legs";
+      else                  splitKey = "strength_push";
+    } else {
+      splitKey = "strength_full";
+    }
+  }
+
+  const r = REC[splitKey]?.[energy]?.[time] ?? REC.mobility.low["10"];
+  const splitTarget = activityType==="strength" ? splitKey.replace("strength_","") : null;
+
+  return {
+    activityType, splitTarget,
+    rationale:   buildRationale(activityType, splitKey, ds, wk, target, energy, forceType),
+    title:       r.t,
+    description: r.d
+  };
+}
+
+function buildRationale(type, splitKey, ds, wk, target, energy, forced) {
+  if (forced) {
+    return energy==="low" ? "A lighter version. Still counts." : "Switching it up today.";
+  }
+
+  const label = {cardio:"cardio", strength:"strength", mobility:"stretching"}[type] || type;
+  let ctx = "";
+
+  if      (ds[type]===999)                        ctx = "You haven't logged any " + label + " yet.";
+  else if (ds[type]>=5)                           ctx = "You haven't done " + label + " in " + ds[type] + " days.";
+  else if (wk[type]<(target[type]||0)-1)          ctx = label.charAt(0).toUpperCase()+label.slice(1) + " is overdue this week.";
+  else if (ds[type]<=1)                           ctx = "Pick up where you left off.";
+  else                                            ctx = "This is what comes next.";
+
+  if (type==="strength") {
+    const sideMap = {
+      strength_upper:"Upper body", strength_lower:"Lower body",
+      strength_push:"Push day",   strength_pull:"Pull day", strength_legs:"Leg day"
+    };
+    const side = sideMap[splitKey];
+    if (side) {
+      ctx = ctx==="Pick up where you left off."
+        ? side + " is next."
+        : ctx.replace(".","") + ". " + side + " today.";
+    }
+  }
+
+  if (energy==="low") ctx += " A lighter version still counts.";
+  return ctx.trim();
+}
+
+function genericRec(energy, time) {
+  const r = REC.mobility[energy][time];
+  return { activityType:"mobility", splitTarget:null, rationale:"Start here.", title:r.t, description:r.d };
+}
+
+// Compute recommendation from current T state
+function currentRec(history) {
+  const energy = T.lighter ? "low"  : "medium";
+  const time   = T.lighter ? "10"   : "30+";
+  return computeRec(userProfile, history, energy, time, T.forceActivity || null);
+}
+
+/* =========================================================
+   SCREEN CONTROL
+   ========================================================= */
+function showScreen(id) {
+  ["signin-screen","onboarding-screen","app"].forEach(s => {
+    document.getElementById(s).classList.remove("is-visible");
+  });
+  document.getElementById(id).classList.add("is-visible");
+}
+
+/* =========================================================
+   AUTH
+   ========================================================= */
+document.getElementById("signin-btn").addEventListener("click", async () => {
+  const st = document.getElementById("signin-status");
+  st.textContent = "Connecting..."; st.style.display = "block";
+  try {
+    await signInWithPopup(auth, gProvider);
+  } catch(err) {
+    if (err.code==="auth/popup-blocked" || err.code==="auth/popup-closed-by-user") {
+      try { await signInWithRedirect(auth, gProvider); }
+      catch(e) { st.textContent = "Sign-in failed. Please try again."; }
+    } else if (err.code !== "auth/cancelled-popup-request") {
+      st.textContent = "Sign-in failed. Please try again."; console.error(err);
+    }
+  }
+});
+document.getElementById("signout-btn").addEventListener("click", async () => await signOut(auth));
+
+/* =========================================================
+   NAV
+   ========================================================= */
+function navigateTo(id) {
+  if (S.screen===id) return;
+  const from = document.getElementById("screen-"+S.screen);
+  const to   = document.getElementById("screen-"+id);
+  from.classList.remove("is-active");
+  setTimeout(() => { from.style.display="none"; }, 10);
+  to.style.display = "flex"; to.classList.add("is-entering");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    to.classList.remove("is-entering"); to.classList.add("is-active");
+  }));
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("is-active", b.dataset.screen===id));
+  S.screen = id;
+  if (id==="history") renderHistory();
+  if (id==="progress") renderProgress();
+}
+document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("click", () => navigateTo(btn.dataset.screen)));
+
+/* =========================================================
+   ONBOARDING
+   Step 1:  Activity setup (merged Now + Goal per activity)
+   Step 2:  Strength split (only if target.strength > 0)
+   Last:    Aha screen
+   ========================================================= */
+const OB_TYPES = [
+  { key:"cardio",   name:"Cardio or running",      hint:"Running, cycling, swimming..." },
+  { key:"strength", name:"Strength training",      hint:"Weights, bodyweight, resistance..." },
+  { key:"mobility", name:"Stretching or mobility", hint:"Yoga, stretching, walks..." }
+];
+const OB_SPLITS = [
+  { id:"full_body",      name:"Full body",           hint:"Each session works everything" },
+  { id:"upper_lower",    name:"Upper / Lower",       hint:"Alternates each session" },
+  { id:"push_pull_legs", name:"Push / Pull / Legs",  hint:"Three-way rotating split" },
+  { id:"flexible",       name:"No structure",        hint:"Flexible, no fixed pattern" }
+];
+
+function obHasSplit()    { return OB.target.strength > 0; }
+function obTotalSteps()  { return obHasSplit() ? 3 : 2; }
+function obIsAhaStep()   { return OB.step === obTotalSteps(); }
+
+function obRenderDots() {
+  const total = obTotalSteps();
+  document.getElementById("ob-dots").innerHTML =
+    Array.from({length:total}, (_,i) =>
+      `<div class="ob-dot ${i+1===OB.step?"active":""}"></div>`).join("");
+}
+
+function obRender() {
+  obRenderDots();
+  const body = document.getElementById("ob-body");
+  const back = document.getElementById("ob-back");
+  const next = document.getElementById("ob-next");
+  back.disabled = OB.step===1;
+  next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
+
+  if (OB.step===1) {
+    // Merged activity screen: Now + Goal side by side per activity
+    body.innerHTML = `
+      <div class="ob-question">What does your week usually look like?</div>
+      <div class="ob-sub">Set what you do now and what you want to build toward.</div>
+      <div class="ob-activity-list">
+        ${OB_TYPES.map(t => `
+          <div class="ob-activity-card">
+            <div class="ob-activity-name">${t.name}</div>
+            <div class="ob-dual-ctrl">
+              <div class="ob-stepper-group">
+                <div class="ob-stepper-label">Now</div>
+                <div class="ob-stepper-inline">
+                  <button class="ob-step-btn" data-field="current" data-type="${t.key}" data-dir="-1">&#8722;</button>
+                  <span class="ob-step-val" id="cur-${t.key}">${OB.current[t.key]}</span>
+                  <button class="ob-step-btn" data-field="current" data-type="${t.key}" data-dir="1">+</button>
+                </div>
+              </div>
+              <div class="ob-stepper-group">
+                <div class="ob-stepper-label">Goal</div>
+                <div class="ob-stepper-inline">
+                  <button class="ob-step-btn" data-field="target" data-type="${t.key}" data-dir="-1">&#8722;</button>
+                  <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]}</span>
+                  <button class="ob-step-btn" data-field="target" data-type="${t.key}" data-dir="1">+</button>
+                </div>
+              </div>
+            </div>
+          </div>`).join("")}
+      </div>`;
+
+    body.querySelectorAll(".ob-step-btn").forEach(btn => btn.addEventListener("click", () => {
+      const field = btn.dataset.field;
+      const tp    = btn.dataset.type;
+      const dir   = parseInt(btn.dataset.dir);
+      OB[field][tp] = Math.max(0, Math.min(7, OB[field][tp]+dir));
+      document.getElementById((field==="current"?"cur-":"tgt-")+tp).textContent = OB[field][tp];
+      obRenderDots();
+      next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
+    }));
+    next.disabled = false;
+
+  } else if (OB.step===2 && obHasSplit()) {
+    // Strength split
+    body.innerHTML = `
+      <div class="ob-question">How do you usually train?</div>
+      <div class="ob-sub">We'll use this to guide your next sessions.</div>
+      <div class="split-list">
+        ${OB_SPLITS.map(s => `
+          <button class="split-card ${OB.split===s.id?"is-selected":""}" data-split="${s.id}">
+            <div>
+              <div class="split-card-name">${s.name}</div>
+              <div class="split-card-hint">${s.hint}</div>
+            </div>
+            <div class="split-card-check">
+              ${OB.split===s.id?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
+            </div>
+          </button>`).join("")}
+      </div>`;
+    body.querySelectorAll("[data-split]").forEach(btn => btn.addEventListener("click", () => {
+      OB.split=btn.dataset.split; obRender();
+    }));
+    next.disabled = false;
+
+  } else {
+    // Aha screen - always the last step
+    body.innerHTML = `
+      <div class="ob-question">We'll keep you on track.</div>
+      <div class="aha-card">
+        <div class="aha-list">
+          <div class="aha-item">You won't have to plan.</div>
+          <div class="aha-item">We'll remember what you've done.</div>
+          <div class="aha-item">We'll bring things back when you skip them.</div>
+          <div class="aha-item">We'll adjust when time is short.</div>
+        </div>
+      </div>`;
+    next.disabled = false;
+  }
+}
+
+function obInit() {
+  showScreen("onboarding-screen");
+  OB.step=1; OB.current={cardio:0,strength:0,mobility:0};
+  OB.target={cardio:0,strength:0,mobility:0}; OB.split="full_body";
+  obRender();
+}
+
+document.getElementById("ob-next").addEventListener("click", async () => {
+  if (!obIsAhaStep()) {
+    OB.step++; obRender();
+  } else {
+    const profile = {
+      current: {...OB.current},
+      target:  {...OB.target},
+      split:   OB.target.strength>0 ? OB.split : "flexible"
+    };
+    userProfile = profile;
+    await saveProfile(profile);
+    showScreen("app");
+    await renderToday();
+  }
+});
+document.getElementById("ob-back").addEventListener("click", () => {
+  if (OB.step>1) { OB.step--; obRender(); }
+});
+
+/* =========================================================
+   TODAY
+   ========================================================= */
+async function renderToday() {
+  const ad      = activeDate();
+  const isToday = ad === todayStr();
+
+  // Reset transient state when loading today fresh
+  if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; }
+
+  document.getElementById("greeting-text").textContent = isToday ? getGreeting() : formatFull(ad);
+  document.getElementById("today-date-label").textContent = isToday ? formatFull(todayStr()) : "Previous session";
+
+  const body = document.getElementById("today-body");
+  body.innerHTML = loading();
+
+  const [existing, history] = await Promise.all([dbForDate(ad), dbGetAll()]);
+
+  const banner = !isToday ? `
+    <div class="date-view-banner">
+      <span class="date-view-label">Logging for ${formatShort(ad)}</span>
+      <button class="date-view-back" id="back-to-today">&times; Back to today</button>
+    </div>` : "";
+
+  if (existing?.completed) {
+    body.innerHTML = banner + completionHtml(existing);
+    if (!isToday) bindBackBtn();
+  } else if (existing && !existing.completed) {
+    body.innerHTML = banner + buildRestCard();
+    if (!isToday) bindBackBtn();
+  } else {
+    renderInputPhase(history, banner);
+  }
+
+  // Past-log always accessible from today
+  if (isToday) {
+    const plDiv = document.createElement("div");
+    plDiv.innerHTML = buildPastLogHtml();
+    body.appendChild(plDiv);
+    wirePastLog(history);
+  }
+}
+
+function bindBackBtn() {
+  document.getElementById("back-to-today")?.addEventListener("click", () => {
+    S.logDate=null; renderToday();
+  });
+}
+
+function renderInputPhase(history, banner) {
+  banner = banner || "";
+  const ad      = activeDate();
+  const isToday = ad === todayStr();
+  const rec     = currentRec(history);
+
+  const changeHtml = T.showChange ? `
+    <div class="change-options">
+      <div class="change-label">Choose direction</div>
+      <div class="change-pills">
+        ${[{k:"cardio",l:"Run"},{k:"strength",l:"Strength"},{k:"mobility",l:"Stretch"}].map(o => `
+          <button class="change-pill ${T.forceActivity===o.k?"is-selected":""}" data-force="${o.k}">${o.l}</button>
+        `).join("")}
+      </div>
+    </div>` : "";
+
+  document.getElementById("today-body").innerHTML = banner + `
+    <div class="rec-card">
+      <div class="rec-tag">Today</div>
+      <div class="rec-headline">${esc(rec.title)}.</div>
+      <div class="rec-context">${esc(rec.rationale)}</div>
+      <div class="rec-detail">${esc(rec.description)}</div>
+      ${T.lighter ? `<div class="rec-lighter-badge">Lighter version</div>` : ""}
+    </div>
+    <div class="action-stack">
+      <button class="btn-start" id="done-btn">Start</button>
+      <div class="adjust-row">
+        <button class="btn-adjust ${T.lighter?"is-active":""}" id="lighter-btn">
+          ${T.lighter ? "Full version" : "Make it lighter"}
+        </button>
+        <button class="btn-adjust ${T.showChange?"is-active":""}" id="change-btn">Change</button>
+      </div>
+    </div>
+    ${changeHtml}
+    <button class="not-today-link" id="skip-btn">Not today</button>`;
+
+  // Wire main actions
+  document.getElementById("done-btn").addEventListener("click", () => completeSession(rec));
+  document.getElementById("lighter-btn").addEventListener("click", () => {
+    T.lighter = !T.lighter; renderInputPhase(history, banner);
+  });
+  document.getElementById("change-btn").addEventListener("click", () => {
+    T.showChange = !T.showChange; renderInputPhase(history, banner);
+  });
+  document.getElementById("skip-btn").addEventListener("click", () => skipToday(rec));
+  document.querySelectorAll("[data-force]").forEach(btn => btn.addEventListener("click", () => {
+    T.forceActivity = T.forceActivity===btn.dataset.force ? null : btn.dataset.force;
+    renderInputPhase(history, banner);
+  }));
+
+  if (!isToday) bindBackBtn();
+
+  // Always append past-log for today view
+  if (isToday) {
+    const plDiv = document.createElement("div");
+    plDiv.innerHTML = buildPastLogHtml();
+    document.getElementById("today-body").appendChild(plDiv);
+    wirePastLog(history);
+  }
+}
+
+/* Past-log section - accessible from all Today states */
+function buildPastLogHtml() {
+  return `
+    <div class="past-log-row">
+      <button class="past-log-toggle-btn" id="past-toggle-btn">+ Log a previous session</button>
+    </div>
+    <div class="past-log-picker" id="past-log-picker-div" style="display:none;margin-top:12px;">
+      <input type="date" id="past-date-input" max="${yesterdayStr()}" value="${yesterdayStr()}">
+      <button class="past-log-go" id="past-log-go">View</button>
+    </div>`;
+}
+
+function wirePastLog(history) {
+  const toggleBtn = document.getElementById("past-toggle-btn");
+  const pickerDiv = document.getElementById("past-log-picker-div");
+  toggleBtn?.addEventListener("click", () => {
+    const isOpen = pickerDiv?.style.display !== "none";
+    if (pickerDiv) pickerDiv.style.display = isOpen ? "none" : "flex";
+    if (toggleBtn) toggleBtn.textContent   = isOpen ? "+ Log a previous session" : "^ Close";
+  });
+  document.getElementById("past-log-go")?.addEventListener("click", () => {
+    const val = document.getElementById("past-date-input").value;
+    if (val && val < todayStr()) {
+      S.logDate = val; renderToday();
+    }
+  });
+}
+
+function completionHtml(entry) {
+  const msg = seededPick(DONE_MSGS, entry.date);
+  return `
+    <div class="completion-wrap">
+      <div class="completion-card">
+        <div class="check-ring">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="completion-heading">${esc(msg.h)}</div>
+        <div class="completion-sub">${esc(msg.s)}</div>
+        <div class="completion-chip">${esc(entry.recommendation)}</div>
+      </div>
+      <p class="quiet-note">See you tomorrow.</p>
+    </div>`;
+}
+
+async function completeSession(rec) {
+  if (!rec) return;
+  const ad      = activeDate();
+  const isToday = ad === todayStr();
+  const entry   = {
+    date: ad, savedAt: new Date().toISOString(),
+    energy:       T.lighter ? "low"  : "medium",
+    timeAvailable:T.lighter ? "10"   : "30+",
+    recommendation: rec.title, rationale: rec.rationale,
+    activityType: rec.activityType, splitTarget: rec.splitTarget || null,
+    completed: true
+  };
+  const pastBanner = !isToday ? `
+    <div class="date-view-banner">
+      <span class="date-view-label">Logged for ${formatShort(ad)}</span>
+      <button class="date-view-back" id="back-to-today">&times; Back to today</button>
+    </div>` : "";
+  document.getElementById("today-body").innerHTML = pastBanner + completionHtml(entry);
+  document.getElementById("back-to-today")?.addEventListener("click", () => { S.logDate=null; renderToday(); });
+  await dbSave(entry);
+}
+
+async function skipToday(rec) {
+  const ad      = activeDate();
+  const isToday = ad === todayStr();
+  const entry   = {
+    date: ad, savedAt: new Date().toISOString(),
+    energy: "low", timeAvailable: "10",
+    recommendation: rec?.title || "Rest", rationale: "",
+    activityType: rec?.activityType || "rest", splitTarget: rec?.splitTarget || null,
+    completed: false
+  };
+  const pastBanner = !isToday ? `
+    <div class="date-view-banner">
+      <span class="date-view-label">Logged for ${formatShort(ad)}</span>
+      <button class="date-view-back" id="back-to-today">&times; Back to today</button>
+    </div>` : "";
+  document.getElementById("today-body").innerHTML = pastBanner + buildRestCard();
+  document.getElementById("back-to-today")?.addEventListener("click", () => { S.logDate=null; renderToday(); });
+  await dbSave(entry);
+}
+
+function buildRestCard() {
+  return `
+    <div class="rest-card">
+      <div class="rest-heading">Rest is valid.</div>
+      <div class="rest-sub">You can come back tomorrow.<br>That's exactly how consistency works.</div>
+    </div>
+    <p class="quiet-note">Small pauses are part of every good rhythm.</p>`;
+}
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+async function renderHistory() {
+  const el = document.getElementById("history-body");
+  el.innerHTML = loading();
+  const entries = await dbGetAll();
+  if (!entries.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-heading">Nothing here yet.</div><div class="empty-sub">Your sessions will appear here after your first completed day.</div></div>`;
+    return;
+  }
+  const checkSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const crossSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5AFA7" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  el.innerHTML = `
+    <div class="history-list">
+      ${entries.slice(0,28).map((e,i) => `
+        <div class="history-row" style="animation-delay:${i*28}ms">
+          <div class="h-status ${e.completed?"done":"skipped"}">${e.completed?checkSvg:crossSvg}</div>
+          <div class="h-body">
+            <div class="h-date">${formatShort(e.date)}</div>
+            <div class="h-rec">${esc(e.recommendation)}</div>
+            <div class="h-meta">${esc(e.activityType||"")}${e.activityType&&e.timeAvailable?" &middot; ":""}${esc(e.timeAvailable||"")}${e.timeAvailable?" min":""}</div>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div class="spacer-lg"></div>`;
+}
+
+/* =========================================================
+   PROGRESS
+   ========================================================= */
+async function renderProgress() {
+  const el = document.getElementById("progress-body");
+  el.innerHTML = loading();
+  const all = await dbGetAll();
+  if (!all.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-heading">Come back soon.</div><div class="empty-sub">Your rhythm will appear here after a few sessions.</div></div>`;
+    return;
+  }
+  const today = new Date();
+  const week  = Array.from({length:7}, (_,i) => {
+    const d  = new Date(today); d.setDate(today.getDate()-(6-i));
+    const ds = d.toISOString().split("T")[0];
+    const e  = all.find(x => x.date===ds);
+    return { label:d.toLocaleDateString("en-GB",{weekday:"narrow"}), completed:e?.completed||false, isToday:i===6 };
+  });
+  const totalDone = all.filter(e => e.completed).length;
+  let streak = 0;
+  for (let i=0; i<all.length; i++) {
+    const exp = new Date(today); exp.setDate(today.getDate()-i);
+    if (all[i]?.date===exp.toISOString().split("T")[0] && all[i]?.completed) streak++;
+    else break;
+  }
+  let typeBreakdown = "";
+  if (userProfile) {
+    const target = userProfile.target || userProfile.routine || {};
+    const cutoff = new Date(today); cutoff.setDate(today.getDate()-7);
+    const cs = cutoff.toISOString().split("T")[0];
+    const rd = all.filter(e => e.completed && e.date>=cs);
+    const types = [{key:"cardio",label:"Cardio"},{key:"strength",label:"Strength"},{key:"mobility",label:"Stretching"}]
+      .filter(t => (target[t.key]||0)>0);
+    if (types.length>1) {
+      typeBreakdown = types.map(t => `
+        <div class="stat-row">
+          <span class="stat-lbl">${t.label} this week</span>
+          <span><span class="stat-val">${rd.filter(e=>e.activityType===t.key).length}</span><span class="stat-unit">/ ${target[t.key]} planned</span></span>
+        </div>`).join("");
+    }
+  }
+  const dotSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  el.innerHTML = `
+    <div class="label">This week</div>
+    <div class="week-row">
+      ${week.map(d => `
+        <div class="week-cell">
+          <span class="week-day-lbl">${d.label}</span>
+          <div class="week-dot ${d.completed?"done":""} ${d.isToday&&!d.completed?"today":""}">
+            ${d.completed?dotSvg:""}
+          </div>
+        </div>`).join("")}
+    </div>
+    ${typeBreakdown}
+    <div class="stat-row">
+      <span class="stat-lbl">Total sessions</span>
+      <span><span class="stat-val">${totalDone}</span><span class="stat-unit">sessions</span></span>
+    </div>
+    ${streak>=2?`<div class="stat-row"><span class="stat-lbl">Current streak</span><span><span class="stat-val">${streak}</span><span class="stat-unit">days</span></span></div>`:""}
+    <p class="quiet-note">${streak>=3?streak+" days in a row. That's real.":"Consistency over time. That's the only metric that matters here."}</p>
+    <div class="spacer-lg"></div>`;
+}
+
+/* =========================================================
+   DEV RESET  (?reset=1 keeps history, ?resetall=1 clears all)
+   ========================================================= */
+async function devReset(clearEntries) {
+  if (!currentUser) return;
+  await deleteDoc(doc(db,"users",currentUser.uid,"data","profile")).catch(()=>{});
+  if (clearEntries) {
+    const snap = await getDocs(query(collection(db,"users",currentUser.uid,"entries")));
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  }
+  userProfile = null;
+  window.history.replaceState({}, "", window.location.pathname);
+  obInit();
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+try { const r = await getRedirectResult(auth); if (r?.user) currentUser=r.user; } catch(e) { console.error(e); }
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("resetall")==="1") { await devReset(true);  return; }
+    if (params.get("reset")   ==="1") { await devReset(false); return; }
+    userProfile = await loadProfile();
+    if (!userProfile) obInit();
+    else { showScreen("app"); await renderToday(); }
+  } else {
+    showScreen("signin-screen");
+  }
+});
+</script>
+</body>
+</html>
