@@ -201,6 +201,27 @@
     .spacer-lg{height:48px;}
     .label{font-size:9.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-3);margin-bottom:14px;}
 
+    /* Single goal stepper — horizontal layout */
+    .ob-activity-card-new{display:flex;align-items:center;justify-content:space-between;padding:22px 0;border-bottom:1px solid var(--border);}
+    .ob-activity-card-new:last-child{border-bottom:none;}
+    .ob-activity-info{flex:1;min-width:0;padding-right:20px;}
+    .ob-goal-ctrl{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+    .ob-goal-val-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:42px;}
+    .ob-per-week{font-size:9px;font-weight:400;color:var(--text-3);letter-spacing:0.05em;text-transform:uppercase;}
+
+    /* Adjust disclosure */
+    .btn-adjust-link{display:block;text-align:center;font-size:13px;font-weight:300;color:var(--text-3);padding:8px 0 4px;transition:color var(--t-fast) ease;}
+    .btn-adjust-link:hover{color:var(--text-2);}
+    .adjust-panel{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0 10px;flex-wrap:wrap;animation:rise 160ms var(--ease) both;}
+    .adj-pill{padding:9px 20px;border:1.5px solid var(--border);border-radius:100px;font-size:13px;font-weight:300;color:var(--text-2);background:transparent;transition:all var(--t-fast) ease;white-space:nowrap;}
+    .adj-pill:hover{border-color:var(--accent);color:var(--text-1);}
+    .adj-pill:active{transform:scale(0.96);}
+    .adj-pill.is-on{background:var(--text-1);border-color:var(--text-1);color:rgba(255,255,255,0.9);font-weight:400;}
+
+    /* History week grouping */
+    .week-group-header{font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-3);padding:22px 0 10px;}
+    .week-group-header:first-child{padding-top:4px;}
+
     /* ── PAST-DAY LOGGING ── */
     .past-log-row{display:flex;justify-content:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--border);}
     .past-log-toggle-btn{font-size:12.5px;font-weight:300;color:var(--text-3);padding:6px 0;transition:color var(--t-fast) ease;}
@@ -691,41 +712,33 @@ function obRender() {
   next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
 
   if (OB.step===1) {
-    // Merged activity screen: Now + Goal side by side per activity
+    // Single goal stepper — horizontal layout: info left, stepper right
     body.innerHTML = `
-      <div class="ob-question">What does your week usually look like?</div>
-      <div class="ob-sub">Set what you do now and what you want to build toward.</div>
+      <div class="ob-question">What do you want to do more of?</div>
+      <div class="ob-sub">Set a weekly goal for each activity. You can always adjust this later.</div>
       <div class="ob-activity-list">
         ${OB_TYPES.map(t => `
-          <div class="ob-activity-card">
-            <div class="ob-activity-name">${t.name}</div>
-            <div class="ob-dual-ctrl">
-              <div class="ob-stepper-group">
-                <div class="ob-stepper-label">Now</div>
-                <div class="ob-stepper-inline">
-                  <button class="ob-step-btn" data-field="current" data-type="${t.key}" data-dir="-1">&#8722;</button>
-                  <span class="ob-step-val" id="cur-${t.key}">${OB.current[t.key]}</span>
-                  <button class="ob-step-btn" data-field="current" data-type="${t.key}" data-dir="1">+</button>
-                </div>
+          <div class="ob-activity-card-new">
+            <div class="ob-activity-info">
+              <div class="ob-activity-name">${t.name}</div>
+              <div class="ob-activity-hint">${t.hint}</div>
+            </div>
+            <div class="ob-goal-ctrl">
+              <button class="ob-step-btn" data-type="${t.key}" data-dir="-1">&#8722;</button>
+              <div class="ob-goal-val-wrap">
+                <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]}</span>
+                <span class="ob-per-week">/ wk</span>
               </div>
-              <div class="ob-stepper-group">
-                <div class="ob-stepper-label">Goal</div>
-                <div class="ob-stepper-inline">
-                  <button class="ob-step-btn" data-field="target" data-type="${t.key}" data-dir="-1">&#8722;</button>
-                  <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]}</span>
-                  <button class="ob-step-btn" data-field="target" data-type="${t.key}" data-dir="1">+</button>
-                </div>
-              </div>
+              <button class="ob-step-btn" data-type="${t.key}" data-dir="1">+</button>
             </div>
           </div>`).join("")}
       </div>`;
 
     body.querySelectorAll(".ob-step-btn").forEach(btn => btn.addEventListener("click", () => {
-      const field = btn.dataset.field;
-      const tp    = btn.dataset.type;
-      const dir   = parseInt(btn.dataset.dir);
-      OB[field][tp] = Math.max(0, Math.min(7, OB[field][tp]+dir));
-      document.getElementById((field==="current"?"cur-":"tgt-")+tp).textContent = OB[field][tp];
+      const tp  = btn.dataset.type;
+      const dir = parseInt(btn.dataset.dir);
+      OB.target[tp] = Math.max(0, Math.min(7, OB.target[tp]+dir));
+      document.getElementById("tgt-"+tp).textContent = OB.target[tp];
       obRenderDots();
       next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
     }));
@@ -781,7 +794,7 @@ document.getElementById("ob-next").addEventListener("click", async () => {
     OB.step++; obRender();
   } else {
     const profile = {
-      current: {...OB.current},
+      current: {...OB.target},  // no "Now" step — start where you want to be
       target:  {...OB.target},
       split:   OB.target.strength>0 ? OB.split : "flexible"
     };
@@ -805,7 +818,9 @@ async function renderToday() {
   // Reset transient state when loading today fresh
   if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; }
 
-  document.getElementById("greeting-text").textContent = isToday ? getGreeting() : formatFull(ad);
+  const firstName = currentUser?.displayName?.split(" ")[0] || "";
+  const greetBase = isToday ? getGreeting() : formatFull(ad);
+  document.getElementById("greeting-text").textContent = isToday && firstName ? greetBase + ", " + firstName : greetBase;
   document.getElementById("today-date-label").textContent = isToday ? formatFull(todayStr()) : "Previous session";
 
   const body = document.getElementById("today-body");
@@ -850,45 +865,41 @@ function renderInputPhase(history, banner) {
   const isToday = ad === todayStr();
   const rec     = currentRec(history);
 
-  const changeHtml = T.showChange ? `
-    <div class="change-options">
-      <div class="change-label">Choose direction</div>
-      <div class="change-pills">
-        ${[{k:"cardio",l:"Run"},{k:"strength",l:"Strength"},{k:"mobility",l:"Stretch"}].map(o => `
-          <button class="change-pill ${T.forceActivity===o.k?"is-selected":""}" data-force="${o.k}">${o.l}</button>
-        `).join("")}
-      </div>
+  const TYPE_LABELS = {cardio:"Cardio", strength:"Strength", mobility:"Mobility"};
+  const typeTag = TYPE_LABELS[rec.activityType] || "Today";
+
+  const adjustPanel = T.showChange ? `
+    <div class="adjust-panel">
+      <button class="adj-pill ${T.lighter?"is-on":""}" id="lighter-pill">${T.lighter?"Full version":"Lighter"}</button>
+      <button class="adj-pill ${T.forceActivity==="cardio"?"is-on":""}" data-force="cardio">Run</button>
+      <button class="adj-pill ${T.forceActivity==="strength"?"is-on":""}" data-force="strength">Strength</button>
+      <button class="adj-pill ${T.forceActivity==="mobility"?"is-on":""}" data-force="mobility">Stretch</button>
     </div>` : "";
 
   document.getElementById("today-body").innerHTML = banner + `
     <div class="rec-card">
-      <div class="rec-tag">Today</div>
+      <div class="rec-tag">${typeTag}</div>
       <div class="rec-headline">${esc(rec.title)}.</div>
       <div class="rec-context">${esc(rec.rationale)}</div>
       <div class="rec-detail">${esc(rec.description)}</div>
       ${T.lighter ? `<div class="rec-lighter-badge">Lighter version</div>` : ""}
     </div>
     <div class="action-stack">
-      <button class="btn-start" id="done-btn">Start</button>
-      <div class="adjust-row">
-        <button class="btn-adjust ${T.lighter?"is-active":""}" id="lighter-btn">
-          ${T.lighter ? "Full version" : "Make it lighter"}
-        </button>
-        <button class="btn-adjust ${T.showChange?"is-active":""}" id="change-btn">Change</button>
-      </div>
+      <button class="btn-start" id="done-btn">Log it</button>
+      <button class="btn-adjust-link" id="adjust-btn">Adjust</button>
     </div>
-    ${changeHtml}
-    <button class="not-today-link" id="skip-btn">Not today</button>`;
+    ${adjustPanel}
+    <button class="not-today-link" id="skip-btn">Skip today</button>`;
 
-  // Wire main actions
+  // Wire actions
   document.getElementById("done-btn").addEventListener("click", () => completeSession(rec));
-  document.getElementById("lighter-btn").addEventListener("click", () => {
-    T.lighter = !T.lighter; renderInputPhase(history, banner);
-  });
-  document.getElementById("change-btn").addEventListener("click", () => {
+  document.getElementById("adjust-btn").addEventListener("click", () => {
     T.showChange = !T.showChange; renderInputPhase(history, banner);
   });
   document.getElementById("skip-btn").addEventListener("click", () => skipToday(rec));
+  document.getElementById("lighter-pill")?.addEventListener("click", () => {
+    T.lighter = !T.lighter; renderInputPhase(history, banner);
+  });
   document.querySelectorAll("[data-force]").forEach(btn => btn.addEventListener("click", () => {
     T.forceActivity = T.forceActivity===btn.dataset.force ? null : btn.dataset.force;
     renderInputPhase(history, banner);
@@ -1015,19 +1026,45 @@ async function renderHistory() {
   }
   const checkSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
   const crossSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5AFA7" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  el.innerHTML = `
-    <div class="history-list">
-      ${entries.slice(0,28).map((e,i) => `
-        <div class="history-row" style="animation-delay:${i*28}ms">
+
+  function weekLabel(dateStr) {
+    const d = daysSince(dateStr);
+    if (d <= 6)  return "This week";
+    if (d <= 13) return "Last week";
+    return Math.floor(d/7) + " weeks ago";
+  }
+
+  // Group entries by week label
+  const groups = [];
+  let curLabel = null, curGroup = [];
+  for (const e of entries.slice(0,42)) {
+    const lbl = weekLabel(e.date);
+    if (lbl !== curLabel) {
+      if (curGroup.length) groups.push({label:curLabel, rows:curGroup});
+      curLabel = lbl; curGroup = [e];
+    } else { curGroup.push(e); }
+  }
+  if (curGroup.length) groups.push({label:curLabel, rows:curGroup});
+
+  let idx = 0;
+  let html = '<div class="history-list">';
+  for (const g of groups) {
+    html += `<div class="week-group-header">${g.label}</div>`;
+    for (const e of g.rows) {
+      html += `
+        <div class="history-row" style="animation-delay:${idx*24}ms">
           <div class="h-status ${e.completed?"done":"skipped"}">${e.completed?checkSvg:crossSvg}</div>
           <div class="h-body">
             <div class="h-date">${formatShort(e.date)}</div>
             <div class="h-rec">${esc(e.recommendation)}</div>
             <div class="h-meta">${esc(e.activityType||"")}${e.activityType&&e.timeAvailable?" &middot; ":""}${esc(e.timeAvailable||"")}${e.timeAvailable?" min":""}</div>
           </div>
-        </div>`).join("")}
-    </div>
-    <div class="spacer-lg"></div>`;
+        </div>`;
+      idx++;
+    }
+  }
+  html += '</div><div class="spacer-lg"></div>';
+  el.innerHTML = html;
 }
 
 /* =========================================================
@@ -1048,13 +1085,23 @@ async function renderProgress() {
     const e  = all.find(x => x.date===ds);
     return { label:d.toLocaleDateString("en-GB",{weekday:"narrow"}), completed:e?.completed||false, isToday:i===6 };
   });
-  const totalDone = all.filter(e => e.completed).length;
+  const done = all.filter(e => e.completed);
+  const totalDone = done.length;
   let streak = 0;
   for (let i=0; i<all.length; i++) {
     const exp = new Date(today); exp.setDate(today.getDate()-i);
     if (all[i]?.date===exp.toISOString().split("T")[0] && all[i]?.completed) streak++;
     else break;
   }
+  // Most consistent activity type
+  const actCounts = {cardio:0, strength:0, mobility:0};
+  done.forEach(e => { if (e.activityType in actCounts) actCounts[e.activityType]++; });
+  const topAct = Object.entries(actCounts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])[0];
+  const actLabels = {cardio:"cardio", strength:"strength", mobility:"stretching"};
+  const insightNote = topAct
+    ? `You're most consistent with ${actLabels[topAct[0]]}.`
+    : streak>=3 ? streak+" days in a row. That's real."
+    : "Consistency over time. That's the only metric that matters here.";
   let typeBreakdown = "";
   if (userProfile) {
     const target = userProfile.target || userProfile.routine || {};
@@ -1089,7 +1136,7 @@ async function renderProgress() {
       <span><span class="stat-val">${totalDone}</span><span class="stat-unit">sessions</span></span>
     </div>
     ${streak>=2?`<div class="stat-row"><span class="stat-lbl">Current streak</span><span><span class="stat-val">${streak}</span><span class="stat-unit">days</span></span></div>`:""}
-    <p class="quiet-note">${streak>=3?streak+" days in a row. That's real.":"Consistency over time. That's the only metric that matters here."}</p>
+    <p class="quiet-note">${insightNote}</p>
     <div class="spacer-lg"></div>`;
 }
 
