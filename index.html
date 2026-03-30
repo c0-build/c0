@@ -715,17 +715,24 @@ function obRender() {
   if (OB.step===1) {
     // Intro screen
     body.innerHTML = `
-      <div class="ob-question">Your personal training companion.</div>
-      <div class="ob-sub">C⁰ keeps your fitness moving — even when life gets in the way.</div>
-      <div class="aha-card">
-        <div class="aha-list">
-          <div class="aha-item">Tell us what you want to do each week.</div>
-          <div class="aha-item">We'll recommend what to do each day based on your history.</div>
-          <div class="aha-item">Log a session in seconds — done or skipped.</div>
-          <div class="aha-item">We track your gaps and bring things back when you fall off.</div>
-        </div>
+      <div class="ob-question" style="animation:rise 300ms var(--ease) both;">Let's plan your week.</div>
+      <div class="ob-sub">You don't have to be perfect. Just keep it moving.<br><span style="color:var(--text-3);">Tell us what you want — we'll take care of the rest.</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+        ${[3,4,"5+"].map(n => `
+          <button class="split-card ${OB.weeklyGoalDays===String(n)?"is-selected":""}" data-days="${n}" style="animation:rise 300ms var(--ease) both;">
+            <div class="split-card-name">${n} days</div>
+            <div class="split-card-check">
+              ${OB.weeklyGoalDays===String(n)?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
+            </div>
+          </button>`).join("")}
       </div>`;
-    next.disabled = false;
+    body.querySelectorAll("[data-days]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        OB.weeklyGoalDays = btn.dataset.days;
+        obRender();
+      });
+    });
+    next.disabled = !OB.weeklyGoalDays;
 
   } else if (OB.step===2) {
     // Single goal stepper — horizontal layout: info left, stepper right
@@ -801,7 +808,7 @@ function obRender() {
 function obInit() {
   showScreen("onboarding-screen");
   OB.step=1; OB.current={cardio:0,strength:0,mobility:0};
-  OB.target={cardio:0,strength:0,mobility:0}; OB.split="full_body";
+  OB.target={cardio:0,strength:0,mobility:0}; OB.split="full_body"; OB.weeklyGoalDays=null;
   obRender();
 }
 
@@ -812,7 +819,8 @@ document.getElementById("ob-next").addEventListener("click", async () => {
     const profile = {
       current: {...OB.target},  // no "Now" step — start where you want to be
       target:  {...OB.target},
-      split:   OB.target.strength>0 ? OB.split : "flexible"
+      split:   OB.target.strength>0 ? OB.split : "flexible",
+      weeklyGoalDays: OB.weeklyGoalDays
     };
     userProfile = profile;
     await saveProfile(profile);
