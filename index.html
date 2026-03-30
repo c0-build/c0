@@ -681,24 +681,13 @@ document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("clic
    Step 3: Activity distribution (with light movement)
    ========================================================= */
 const OB_TYPES = [
-  { key:"strength", name:"Strength",     hint:"Weights, bodyweight, resistance" },
-  { key:"cardio",   name:"Cardio",       hint:"Running, cycling, swimming" },
-  { key:"mobility", name:"Mobility",     hint:"Yoga, stretching, flexibility" },
-  { key:"light",    name:"Light movement", hint:"Walking, short sessions, low effort" }
+  { key:"strength", name:"Strength", hint:"Weights, bodyweight, resistance" },
+  { key:"cardio",   name:"Cardio",   hint:"Running, cycling, swimming" },
+  { key:"mobility", name:"Mobility", hint:"Yoga, stretching, flexibility" }
 ];
 
 function obTotalSteps()  { return 3; }
 function obIsLastStep()  { return OB.step === 3; }
-function obIsIntroStep() { return OB.step === 1; }
-function obWeeklyMax()   { return OB.weeklyGoalDays === "5+" ? 5 : parseInt(OB.weeklyGoalDays||"3"); }
-function obTotalAssigned() { return (OB.target.strength||0)+(OB.target.cardio||0)+(OB.target.mobility||0)+(OB.target.light||0); }
-
-function obSmartDefaults() {
-  const d = OB.weeklyGoalDays;
-  if (d==="3")       return { strength:1, cardio:1, mobility:0, light:1 };
-  if (d==="4")       return { strength:2, cardio:0, mobility:0, light:2 };
-  return               { strength:2, cardio:1, mobility:1, light:1 }; // 5+
-}
 
 function obRenderDots() {
   const total = obTotalSteps();
@@ -736,7 +725,6 @@ function obRender() {
     body.querySelectorAll("[data-days]").forEach(btn => {
       btn.addEventListener("click", () => {
         OB.weeklyGoalDays = btn.dataset.days;
-        OB.target = obSmartDefaults();
         obRender();
       });
     });
@@ -752,20 +740,10 @@ function obRender() {
 
   } else {
     // Step 3: Activity distribution
-    const max     = obWeeklyMax();
-    const total   = obTotalAssigned();
-    const remaining = max - total;
-    const checkSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     body.innerHTML = `
       <div class="ob-question" style="animation:rise 300ms var(--ease) both;">How should we split your week?</div>
-      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">We'll distribute these across your week. Lighter days count too.</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;">
-        <span style="font-size:12px;font-weight:400;color:var(--text-3);letter-spacing:0.04em;text-transform:uppercase;">
-          ${remaining > 0 ? `${remaining} day${remaining!==1?"s":""} left` : `<span style="color:var(--accent);">Week filled</span>`}
-        </span>
-        <span style="font-size:12px;font-weight:300;color:var(--text-3);">${total} / ${max}</span>
-      </div>
-      <div class="ob-activity-list" id="ob-dist-list">
+      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">We'll prioritize these and adapt as you go.</div>
+      <div class="ob-activity-list" style="margin-top:16px;">
         ${OB_TYPES.map(t => `
           <div class="ob-activity-card-new">
             <div class="ob-activity-info">
@@ -778,17 +756,14 @@ function obRender() {
                 <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]||0}</span>
                 <span class="ob-per-week">/ wk</span>
               </div>
-              <button class="ob-step-btn" data-type="${t.key}" data-dir="1" ${remaining===0?"disabled":""} style="opacity:${remaining===0?0.35:1}">+</button>
+              <button class="ob-step-btn" data-type="${t.key}" data-dir="1">+</button>
             </div>
           </div>`).join("")}
       </div>`;
     body.querySelectorAll(".ob-step-btn").forEach(btn => btn.addEventListener("click", () => {
       const tp  = btn.dataset.type;
       const dir = parseInt(btn.dataset.dir);
-      const newVal = (OB.target[tp]||0) + dir;
-      if (newVal < 0) return;
-      if (dir===1 && obTotalAssigned() >= obWeeklyMax()) return;
-      OB.target[tp] = newVal;
+      OB.target[tp] = Math.max(0, Math.min(7, (OB.target[tp]||0)+dir));
       obRender();
     }));
     next.disabled = false;
@@ -797,8 +772,8 @@ function obRender() {
 
 function obInit() {
   showScreen("onboarding-screen");
-  OB.step=1; OB.current={cardio:0,strength:0,mobility:0,light:0};
-  OB.target={cardio:0,strength:0,mobility:0,light:0}; OB.split="full_body"; OB.weeklyGoalDays=null;
+  OB.step=1; OB.current={cardio:0,strength:0,mobility:0};
+  OB.target={cardio:0,strength:0,mobility:0}; OB.split="full_body"; OB.weeklyGoalDays=null;
   obRender();
 }
 
@@ -910,7 +885,7 @@ function renderInputPhase(history, banner) {
   document.getElementById("adjust-btn").addEventListener("click", () => {
     T.showChange = !T.showChange; renderInputPhase(history, banner);
   });
-  document.getElementById("skip-btn").addEventListener("click", () => skipToday(rec));
+  document.getElementById("skip-btn").addEventListener("click", () => skipToday(rec, history, banner));
   document.getElementById("lighter-pill")?.addEventListener("click", () => {
     T.lighter = !T.lighter; renderInputPhase(history, banner);
   });
@@ -998,24 +973,68 @@ async function completeSession(rec) {
   await dbSave(entry);
 }
 
-async function skipToday(rec) {
-  const ad      = activeDate();
-  const isToday = ad === todayStr();
-  const entry   = {
-    date: ad, savedAt: new Date().toISOString(),
-    energy: "low", timeAvailable: "10",
-    recommendation: rec?.title || "Rest", rationale: "",
-    activityType: rec?.activityType || "rest", splitTarget: rec?.splitTarget || null,
-    completed: false
+function skipToday(rec, history, banner) {
+  // Show "lighter instead?" prompt before committing to skip
+  banner = banner || "";
+  const body = document.getElementById("today-body");
+  body.innerHTML = banner + `
+    <div class="rec-card" style="animation:rise 280ms var(--ease) both;">
+      <div class="rec-tag">Before you go</div>
+      <div class="rec-headline">Do something lighter?</div>
+      <div class="rec-context">Even a short session keeps the streak alive.</div>
+      <div class="action-stack" style="margin-top:24px;">
+        <button class="btn-start" id="lighter-walk-btn">Go for a walk</button>
+        <div class="adjust-row">
+          <button class="btn-adjust" id="lighter-short-btn">Short session</button>
+          <button class="btn-adjust" id="lighter-stretch-btn">Stretch</button>
+        </div>
+      </div>
+      <button class="not-today-link" id="confirm-skip-btn">No, skip today</button>
+    </div>`;
+
+  const logLighter = async (title, type) => {
+    const ad = activeDate();
+    const isToday = ad === todayStr();
+    const entry = {
+      date: ad, savedAt: new Date().toISOString(),
+      energy: "low", timeAvailable: "10",
+      recommendation: title, rationale: "Light movement.",
+      activityType: type, splitTarget: null,
+      completed: true, lighter: true
+    };
+    const pastBanner = !isToday ? `
+      <div class="date-view-banner">
+        <span class="date-view-label">Logged for ${formatShort(ad)}</span>
+        <button class="date-view-back" id="back-to-today">&times; Back to today</button>
+      </div>` : "";
+    document.getElementById("today-body").innerHTML = pastBanner + completionHtml(entry);
+    document.getElementById("back-to-today")?.addEventListener("click", () => { S.logDate=null; renderToday(); });
+    await dbSave(entry);
   };
-  const pastBanner = !isToday ? `
-    <div class="date-view-banner">
-      <span class="date-view-label">Logged for ${formatShort(ad)}</span>
-      <button class="date-view-back" id="back-to-today">&times; Back to today</button>
-    </div>` : "";
-  document.getElementById("today-body").innerHTML = pastBanner + buildRestCard();
-  document.getElementById("back-to-today")?.addEventListener("click", () => { S.logDate=null; renderToday(); });
-  await dbSave(entry);
+
+  document.getElementById("lighter-walk-btn").addEventListener("click",    () => logLighter("A short walk", "cardio"));
+  document.getElementById("lighter-short-btn").addEventListener("click",   () => logLighter("Short session", "strength"));
+  document.getElementById("lighter-stretch-btn").addEventListener("click", () => logLighter("A quick stretch", "mobility"));
+
+  document.getElementById("confirm-skip-btn").addEventListener("click", async () => {
+    const ad      = activeDate();
+    const isToday = ad === todayStr();
+    const entry   = {
+      date: ad, savedAt: new Date().toISOString(),
+      energy: "low", timeAvailable: "10",
+      recommendation: rec?.title || "Rest", rationale: "",
+      activityType: rec?.activityType || "rest", splitTarget: rec?.splitTarget || null,
+      completed: false
+    };
+    const pastBanner = !isToday ? `
+      <div class="date-view-banner">
+        <span class="date-view-label">Logged for ${formatShort(ad)}</span>
+        <button class="date-view-back" id="back-to-today">&times; Back to today</button>
+      </div>` : "";
+    document.getElementById("today-body").innerHTML = pastBanner + buildRestCard();
+    document.getElementById("back-to-today")?.addEventListener("click", () => { S.logDate=null; renderToday(); });
+    await dbSave(entry);
+  });
 }
 
 function buildRestCard() {
