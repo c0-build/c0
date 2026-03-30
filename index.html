@@ -693,8 +693,9 @@ const OB_SPLITS = [
 ];
 
 function obHasSplit()    { return OB.target.strength > 0; }
-function obTotalSteps()  { return obHasSplit() ? 3 : 2; }
+function obTotalSteps()  { return obHasSplit() ? 4 : 3; }
 function obIsAhaStep()   { return OB.step === obTotalSteps(); }
+function obIsIntroStep() { return OB.step === 1; }
 
 function obRenderDots() {
   const total = obTotalSteps();
@@ -709,9 +710,24 @@ function obRender() {
   const back = document.getElementById("ob-back");
   const next = document.getElementById("ob-next");
   back.disabled = OB.step===1;
-  next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
+  next.textContent = obIsAhaStep() ? "Let's go" : obIsIntroStep() ? "Get started" : "Continue";
 
   if (OB.step===1) {
+    // Intro screen
+    body.innerHTML = `
+      <div class="ob-question">Your personal training companion.</div>
+      <div class="ob-sub">C⁰ keeps your fitness moving — even when life gets in the way.</div>
+      <div class="aha-card">
+        <div class="aha-list">
+          <div class="aha-item">Tell us what you want to do each week.</div>
+          <div class="aha-item">We'll recommend what to do each day based on your history.</div>
+          <div class="aha-item">Log a session in seconds — done or skipped.</div>
+          <div class="aha-item">We track your gaps and bring things back when you fall off.</div>
+        </div>
+      </div>`;
+    next.disabled = false;
+
+  } else if (OB.step===2) {
     // Single goal stepper — horizontal layout: info left, stepper right
     body.innerHTML = `
       <div class="ob-question">What do you want to do more of?</div>
@@ -744,7 +760,7 @@ function obRender() {
     }));
     next.disabled = false;
 
-  } else if (OB.step===2 && obHasSplit()) {
+  } else if (OB.step===3 && obHasSplit()) {
     // Strength split
     body.innerHTML = `
       <div class="ob-question">How do you usually train?</div>
