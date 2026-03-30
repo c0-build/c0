@@ -676,26 +676,29 @@ document.querySelectorAll(".nav-item").forEach(btn => btn.addEventListener("clic
 
 /* =========================================================
    ONBOARDING
-   Step 1:  Activity setup (merged Now + Goal per activity)
-   Step 2:  Strength split (only if target.strength > 0)
-   Last:    Aha screen
+   Step 1: Weekly commitment (days)
+   Step 2: System explanation
+   Step 3: Activity distribution (with light movement)
    ========================================================= */
 const OB_TYPES = [
-  { key:"cardio",   name:"Cardio or running",      hint:"Running, cycling, swimming..." },
-  { key:"strength", name:"Strength training",      hint:"Weights, bodyweight, resistance..." },
-  { key:"mobility", name:"Stretching or mobility", hint:"Yoga, stretching, walks..." }
-];
-const OB_SPLITS = [
-  { id:"full_body",      name:"Full body",           hint:"Each session works everything" },
-  { id:"upper_lower",    name:"Upper / Lower",       hint:"Alternates each session" },
-  { id:"push_pull_legs", name:"Push / Pull / Legs",  hint:"Three-way rotating split" },
-  { id:"flexible",       name:"No structure",        hint:"Flexible, no fixed pattern" }
+  { key:"strength", name:"Strength",     hint:"Weights, bodyweight, resistance" },
+  { key:"cardio",   name:"Cardio",       hint:"Running, cycling, swimming" },
+  { key:"mobility", name:"Mobility",     hint:"Yoga, stretching, flexibility" },
+  { key:"light",    name:"Light movement", hint:"Walking, short sessions, low effort" }
 ];
 
-function obHasSplit()    { return OB.target.strength > 0; }
-function obTotalSteps()  { return obHasSplit() ? 4 : 3; }
-function obIsAhaStep()   { return OB.step === obTotalSteps(); }
+function obTotalSteps()  { return 3; }
+function obIsLastStep()  { return OB.step === 3; }
 function obIsIntroStep() { return OB.step === 1; }
+function obWeeklyMax()   { return OB.weeklyGoalDays === "5+" ? 5 : parseInt(OB.weeklyGoalDays||"3"); }
+function obTotalAssigned() { return (OB.target.strength||0)+(OB.target.cardio||0)+(OB.target.mobility||0)+(OB.target.light||0); }
+
+function obSmartDefaults() {
+  const d = OB.weeklyGoalDays;
+  if (d==="3")       return { strength:1, cardio:1, mobility:0, light:1 };
+  if (d==="4")       return { strength:2, cardio:0, mobility:0, light:2 };
+  return               { strength:2, cardio:1, mobility:1, light:1 }; // 5+
+}
 
 function obRenderDots() {
   const total = obTotalSteps();
@@ -710,36 +713,59 @@ function obRender() {
   const back = document.getElementById("ob-back");
   const next = document.getElementById("ob-next");
   back.disabled = OB.step===1;
-  next.textContent = obIsAhaStep() ? "Let's go" : obIsIntroStep() ? "Get started" : "Continue";
+  next.textContent = obIsLastStep() ? "Let's go" : "Continue";
 
   if (OB.step===1) {
-    // Intro screen
+    // Step 1: Weekly commitment
+    const checkSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
     body.innerHTML = `
       <div class="ob-question" style="animation:rise 300ms var(--ease) both;">Let's plan your week.</div>
-      <div class="ob-sub">You don't have to be perfect. Just keep it moving.<br><span style="color:var(--text-3);">Tell us what you want — we'll take care of the rest.</span></div>
+      <div class="ob-sub">You don't have to be perfect. Just keep it moving.</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
         ${[3,4,"5+"].map(n => `
           <button class="split-card ${OB.weeklyGoalDays===String(n)?"is-selected":""}" data-days="${n}" style="animation:rise 300ms var(--ease) both;">
-            <div class="split-card-name">${n} days</div>
+            <div>
+              <div class="split-card-name">${n} days</div>
+            </div>
             <div class="split-card-check">
-              ${OB.weeklyGoalDays===String(n)?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
+              ${OB.weeklyGoalDays===String(n)?checkSvg:""}
             </div>
           </button>`).join("")}
-      </div>`;
+      </div>
+      ${OB.weeklyGoalDays ? `<div class="ob-sub" style="margin-top:16px;color:var(--accent);animation:rise 200ms var(--ease) both;">We'll build around this.</div>` : ""}`;
     body.querySelectorAll("[data-days]").forEach(btn => {
       btn.addEventListener("click", () => {
         OB.weeklyGoalDays = btn.dataset.days;
+        OB.target = obSmartDefaults();
         obRender();
       });
     });
     next.disabled = !OB.weeklyGoalDays;
 
   } else if (OB.step===2) {
-    // Single goal stepper — horizontal layout: info left, stepper right
+    // Step 2: System explanation
     body.innerHTML = `
-      <div class="ob-question">What do you want to do more of?</div>
-      <div class="ob-sub">Set a weekly goal for each activity. You can always adjust this later.</div>
-      <div class="ob-activity-list">
+      <div class="ob-question" style="animation:rise 300ms var(--ease) both;">We'll keep you on track.</div>
+      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">You won't have to plan. We'll adjust as you go.</div>
+      <div class="ob-sub" style="margin-top:8px;color:var(--text-3);animation:rise 300ms var(--ease) 120ms both;">Skip a day — we'll bring it back.</div>`;
+    next.disabled = false;
+
+  } else {
+    // Step 3: Activity distribution
+    const max     = obWeeklyMax();
+    const total   = obTotalAssigned();
+    const remaining = max - total;
+    const checkSvg = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    body.innerHTML = `
+      <div class="ob-question" style="animation:rise 300ms var(--ease) both;">How should we split your week?</div>
+      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">We'll distribute these across your week. Lighter days count too.</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;">
+        <span style="font-size:12px;font-weight:400;color:var(--text-3);letter-spacing:0.04em;text-transform:uppercase;">
+          ${remaining > 0 ? `${remaining} day${remaining!==1?"s":""} left` : `<span style="color:var(--accent);">Week filled</span>`}
+        </span>
+        <span style="font-size:12px;font-weight:300;color:var(--text-3);">${total} / ${max}</span>
+      </div>
+      <div class="ob-activity-list" id="ob-dist-list">
         ${OB_TYPES.map(t => `
           <div class="ob-activity-card-new">
             <div class="ob-activity-info">
@@ -747,73 +773,37 @@ function obRender() {
               <div class="ob-activity-hint">${t.hint}</div>
             </div>
             <div class="ob-goal-ctrl">
-              <button class="ob-step-btn" data-type="${t.key}" data-dir="-1">&#8722;</button>
+              <button class="ob-step-btn" data-type="${t.key}" data-dir="-1" ${(OB.target[t.key]||0)===0?"disabled":""} style="opacity:${(OB.target[t.key]||0)===0?0.35:1}">&#8722;</button>
               <div class="ob-goal-val-wrap">
-                <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]}</span>
+                <span class="ob-step-val" id="tgt-${t.key}">${OB.target[t.key]||0}</span>
                 <span class="ob-per-week">/ wk</span>
               </div>
-              <button class="ob-step-btn" data-type="${t.key}" data-dir="1">+</button>
+              <button class="ob-step-btn" data-type="${t.key}" data-dir="1" ${remaining===0?"disabled":""} style="opacity:${remaining===0?0.35:1}">+</button>
             </div>
           </div>`).join("")}
       </div>`;
-
     body.querySelectorAll(".ob-step-btn").forEach(btn => btn.addEventListener("click", () => {
       const tp  = btn.dataset.type;
       const dir = parseInt(btn.dataset.dir);
-      OB.target[tp] = Math.max(0, Math.min(7, OB.target[tp]+dir));
-      document.getElementById("tgt-"+tp).textContent = OB.target[tp];
-      obRenderDots();
-      next.textContent = obIsAhaStep() ? "Let's go" : "Continue";
+      const newVal = (OB.target[tp]||0) + dir;
+      if (newVal < 0) return;
+      if (dir===1 && obTotalAssigned() >= obWeeklyMax()) return;
+      OB.target[tp] = newVal;
+      obRender();
     }));
-    next.disabled = false;
-
-  } else if (OB.step===3 && obHasSplit()) {
-    // Strength split
-    body.innerHTML = `
-      <div class="ob-question">How do you usually train?</div>
-      <div class="ob-sub">We'll use this to guide your next sessions.</div>
-      <div class="split-list">
-        ${OB_SPLITS.map(s => `
-          <button class="split-card ${OB.split===s.id?"is-selected":""}" data-split="${s.id}">
-            <div>
-              <div class="split-card-name">${s.name}</div>
-              <div class="split-card-hint">${s.hint}</div>
-            </div>
-            <div class="split-card-check">
-              ${OB.split===s.id?`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`:""}
-            </div>
-          </button>`).join("")}
-      </div>`;
-    body.querySelectorAll("[data-split]").forEach(btn => btn.addEventListener("click", () => {
-      OB.split=btn.dataset.split; obRender();
-    }));
-    next.disabled = false;
-
-  } else {
-    // Aha screen - always the last step
-    body.innerHTML = `
-      <div class="ob-question">We'll keep you on track.</div>
-      <div class="aha-card">
-        <div class="aha-list">
-          <div class="aha-item">You won't have to plan.</div>
-          <div class="aha-item">We'll remember what you've done.</div>
-          <div class="aha-item">We'll bring things back when you skip them.</div>
-          <div class="aha-item">We'll adjust when time is short.</div>
-        </div>
-      </div>`;
     next.disabled = false;
   }
 }
 
 function obInit() {
   showScreen("onboarding-screen");
-  OB.step=1; OB.current={cardio:0,strength:0,mobility:0};
-  OB.target={cardio:0,strength:0,mobility:0}; OB.split="full_body"; OB.weeklyGoalDays=null;
+  OB.step=1; OB.current={cardio:0,strength:0,mobility:0,light:0};
+  OB.target={cardio:0,strength:0,mobility:0,light:0}; OB.split="full_body"; OB.weeklyGoalDays=null;
   obRender();
 }
 
 document.getElementById("ob-next").addEventListener("click", async () => {
-  if (!obIsAhaStep()) {
+  if (!obIsLastStep()) {
     OB.step++; obRender();
   } else {
     const profile = {
