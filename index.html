@@ -222,6 +222,42 @@
     .week-group-header{font-size:10px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-3);padding:22px 0 10px;}
     .week-group-header:first-child{padding-top:4px;}
 
+    /* ── WORKOUT BUILDER ── */
+    .workout-builder{margin-top:20px;animation:rise 180ms var(--ease) both;}
+    .wb-label{font-size:9.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-3);margin-bottom:12px;}
+    .wb-exercise-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+    .wb-exercise-row{display:grid;grid-template-columns:1fr 52px 52px 28px;gap:6px;align-items:center;}
+    .wb-input{font-family:var(--sans);font-size:13px;font-weight:300;color:var(--text-1);background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;width:100%;outline:none;transition:border-color var(--t-fast) ease;}
+    .wb-input:focus{border-color:var(--accent);}
+    .wb-input::placeholder{color:var(--text-3);}
+    .wb-num{text-align:center;padding:10px 6px;}
+    .wb-remove{width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);color:var(--text-3);font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--t-fast) ease;cursor:pointer;}
+    .wb-remove:hover{border-color:#c47a7a;color:#c47a7a;}
+    .wb-col-headers{display:grid;grid-template-columns:1fr 52px 52px 28px;gap:6px;margin-bottom:4px;}
+    .wb-col-hdr{font-size:9px;font-weight:500;letter-spacing:0.10em;text-transform:uppercase;color:var(--text-3);text-align:center;}
+    .wb-col-hdr:first-child{text-align:left;}
+    .wb-add-btn{font-size:12.5px;font-weight:300;color:var(--accent);padding:6px 0;transition:opacity var(--t-fast) ease;display:block;}
+    .wb-add-btn:hover{opacity:0.7;}
+    .wb-actions{display:flex;align-items:center;gap:10px;margin-top:12px;}
+    .wb-save-btn{font-size:12px;font-weight:400;color:var(--text-2);padding:8px 16px;background:var(--surface-2);border:1.5px solid var(--border);border-radius:100px;white-space:nowrap;transition:all var(--t-fast) ease;}
+    .wb-save-btn:hover{border-color:var(--accent);color:var(--text-1);}
+    .wb-template-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+    .wb-template-pill{font-size:12px;font-weight:300;color:var(--text-2);padding:6px 14px;border:1.5px solid var(--border);border-radius:100px;background:transparent;transition:all var(--t-fast) ease;white-space:nowrap;}
+    .wb-template-pill:hover{border-color:var(--accent);color:var(--text-1);}
+    .wb-template-pill.is-loaded{background:var(--surface-2);border-color:var(--text-2);color:var(--text-1);}
+    .wb-save-name-row{display:flex;gap:8px;margin-top:8px;animation:rise 160ms var(--ease) both;}
+    .wb-name-input{flex:1;font-family:var(--sans);font-size:13px;font-weight:300;color:var(--text-1);background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;outline:none;transition:border-color var(--t-fast) ease;}
+    .wb-name-input:focus{border-color:var(--accent);}
+    .wb-confirm-save{font-size:13px;font-weight:400;color:var(--surface);padding:10px 18px;background:var(--text-1);border-radius:var(--r-sm);white-space:nowrap;transition:opacity var(--t-fast) ease;flex-shrink:0;}
+    .wb-confirm-save:hover{opacity:0.8;}
+
+    /* ── CARDIO TYPE SELECTOR ── */
+    .cardio-type-section{margin-top:18px;animation:rise 180ms var(--ease) both;}
+    .cardio-type-pills{display:flex;gap:7px;flex-wrap:wrap;}
+    .cardio-pill{padding:9px 18px;border:1.5px solid var(--border);border-radius:100px;font-size:13px;font-weight:300;color:var(--text-2);background:transparent;transition:all var(--t-fast) ease;white-space:nowrap;}
+    .cardio-pill:hover{border-color:var(--accent);color:var(--text-1);}
+    .cardio-pill.is-selected{background:var(--text-1);border-color:var(--text-1);color:rgba(255,255,255,0.9);font-weight:400;}
+
     /* ── PAST-DAY LOGGING ── */
     .past-log-row{display:flex;justify-content:center;margin-top:32px;padding-top:24px;border-top:1px solid var(--border);}
     .past-log-toggle-btn{font-size:12.5px;font-weight:300;color:var(--text-3);padding:6px 0;transition:color var(--t-fast) ease;}
@@ -456,7 +492,11 @@ const S = {
 const T = {
   lighter:       false,
   forceActivity: null,   // 'cardio' | 'strength' | 'mobility' | null
-  showChange:    false
+  showChange:    false,
+  cardioType:    null,   // 'run' | 'bike' | 'swim' | 'row' | 'walk' | null
+  exercises:     [],     // [{name, sets, reps}]
+  loadedTemplate: null,  // template name currently loaded
+  showBuilder:   false   // whether workout builder panel is expanded
 };
 
 // Onboarding state
@@ -494,6 +534,17 @@ async function dbGetAll() {
 async function dbForDate(ds) {
   const snap = await getDoc(doc(db,"users",currentUser.uid,"entries",ds));
   return snap.exists() ? snap.data() : null;
+}
+async function dbSaveTemplate(name, exercises, splitKey) {
+  const id = name.trim().toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-]/g,"") + "-" + Date.now();
+  await setDoc(doc(db,"users",currentUser.uid,"templates",id), {
+    name: name.trim(), exercises, splitKey,
+    savedAt: new Date().toISOString()
+  });
+}
+async function dbGetTemplates(splitKey) {
+  const snap = await getDocs(collection(db,"users",currentUser.uid,"templates"));
+  return snap.docs.map(d=>d.data()).filter(t => !splitKey || t.splitKey===splitKey || t.splitKey==="any");
 }
 
 /* =========================================================
@@ -805,7 +856,7 @@ async function renderToday() {
   const isToday = ad === todayStr();
 
   // Reset transient state when loading today fresh
-  if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; }
+  if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; T.cardioType=null; T.exercises=[]; T.loadedTemplate=null; T.showBuilder=false; }
 
   const firstName = currentUser?.displayName?.split(" ")[0] || "";
   const greetBase = isToday ? getGreeting() : formatFull(ad);
@@ -848,7 +899,53 @@ function bindBackBtn() {
   });
 }
 
-function renderInputPhase(history, banner) {
+const CARDIO_TYPES = [
+  {key:"run", label:"Run"},
+  {key:"bike", label:"Bike"},
+  {key:"swim", label:"Swim"},
+  {key:"row", label:"Row"},
+  {key:"walk", label:"Walk"},
+  {key:"other", label:"Other"}
+];
+
+function buildExerciseRowHtml(ex, i) {
+  return `<div class="wb-exercise-row" data-idx="${i}">
+    <input class="wb-input" type="text" placeholder="Exercise name" value="${esc(ex.name||"")}" data-field="name" data-idx="${i}">
+    <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="3" value="${ex.sets||""}" data-field="sets" data-idx="${i}">
+    <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="10" value="${ex.reps||""}" data-field="reps" data-idx="${i}">
+    <button class="wb-remove" data-remove="${i}" title="Remove">&#215;</button>
+  </div>`;
+}
+
+function buildWorkoutBuilderHtml(templates, splitKey) {
+  const exRows = T.exercises.map((ex,i) => buildExerciseRowHtml(ex,i)).join("");
+  const templatePills = templates.length ? `
+    <div class="wb-label" style="margin-bottom:8px;">Saved workouts</div>
+    <div class="wb-template-row">
+      ${templates.map(t => `<button class="wb-template-pill ${T.loadedTemplate===t.name?"is-loaded":""}" data-tpl="${esc(t.name)}">${esc(t.name)}</button>`).join("")}
+    </div>` : "";
+  return `
+    <div class="workout-builder" id="workout-builder">
+      <div class="wb-label">Plan your session</div>
+      ${templatePills}
+      <div class="wb-col-headers">
+        <div class="wb-col-hdr">Exercise</div>
+        <div class="wb-col-hdr">Sets</div>
+        <div class="wb-col-hdr">Reps</div>
+        <div class="wb-col-hdr"></div>
+      </div>
+      <div class="wb-exercise-list" id="wb-exercise-list">
+        ${exRows}
+      </div>
+      <button class="wb-add-btn" id="wb-add-btn">+ Add exercise</button>
+      <div class="wb-actions">
+        <button class="wb-save-btn" id="wb-save-btn">Save as template</button>
+      </div>
+      <div id="wb-save-name-area"></div>
+    </div>`;
+}
+
+async function renderInputPhase(history, banner) {
   banner = banner || "";
   const ad      = activeDate();
   const isToday = ad === todayStr();
@@ -856,14 +953,32 @@ function renderInputPhase(history, banner) {
 
   const TYPE_LABELS = {cardio:"Cardio", strength:"Strength", mobility:"Mobility"};
   const typeTag = TYPE_LABELS[rec.activityType] || "Today";
+  const isStrength = rec.activityType === "strength";
+  const isCardio   = rec.activityType === "cardio";
 
   const adjustPanel = T.showChange ? `
     <div class="adjust-panel">
       <button class="adj-pill ${T.lighter?"is-on":""}" id="lighter-pill">${T.lighter?"Full version":"Lighter"}</button>
-      <button class="adj-pill ${T.forceActivity==="cardio"?"is-on":""}" data-force="cardio">Run</button>
+      <button class="adj-pill ${T.forceActivity==="cardio"?"is-on":""}" data-force="cardio">Cardio</button>
       <button class="adj-pill ${T.forceActivity==="strength"?"is-on":""}" data-force="strength">Strength</button>
       <button class="adj-pill ${T.forceActivity==="mobility"?"is-on":""}" data-force="mobility">Stretch</button>
     </div>` : "";
+
+  const cardioSection = isCardio ? `
+    <div class="cardio-type-section">
+      <div class="wb-label">Type of cardio</div>
+      <div class="cardio-type-pills">
+        ${CARDIO_TYPES.map(ct => `<button class="cardio-pill ${T.cardioType===ct.key?"is-selected":""}" data-cardio="${ct.key}">${ct.label}</button>`).join("")}
+      </div>
+    </div>` : "";
+
+  // Load templates if strength day
+  let templates = [];
+  if (isStrength) {
+    try { templates = await dbGetTemplates(rec.splitTarget || "any"); } catch(e) {}
+  }
+  const workoutBuilderHtml = (isStrength && T.showBuilder) ? buildWorkoutBuilderHtml(templates, rec.splitTarget) : "";
+  const builderToggle = isStrength ? `<button class="btn-adjust-link" id="builder-toggle-btn" style="margin-top:4px;">${T.showBuilder ? "Hide workout plan" : "Plan this session"}</button>` : "";
 
   document.getElementById("today-body").innerHTML = banner + `
     <div class="rec-card">
@@ -873,14 +988,62 @@ function renderInputPhase(history, banner) {
       <div class="rec-detail">${esc(rec.description)}</div>
       ${T.lighter ? `<div class="rec-lighter-badge">Lighter version</div>` : ""}
     </div>
-    <div class="action-stack">
+    ${cardioSection}
+    ${builderToggle}
+    ${workoutBuilderHtml}
+    <div class="action-stack" style="margin-top:20px;">
       <button class="btn-start" id="done-btn">Log it</button>
       <button class="btn-adjust-link" id="adjust-btn">Adjust</button>
     </div>
     ${adjustPanel}
     <button class="not-today-link" id="skip-btn">Skip today</button>`;
 
-  // Wire actions
+  // Wire builder toggle
+  document.getElementById("builder-toggle-btn")?.addEventListener("click", () => {
+    T.showBuilder = !T.showBuilder;
+    if (T.showBuilder && !T.exercises.length) T.exercises = [{name:"",sets:"",reps:""}];
+    renderInputPhase(history, banner);
+  });
+
+  // Wire cardio type pills
+  document.querySelectorAll("[data-cardio]").forEach(btn => btn.addEventListener("click", () => {
+    T.cardioType = T.cardioType === btn.dataset.cardio ? null : btn.dataset.cardio;
+    document.querySelectorAll("[data-cardio]").forEach(b => b.classList.toggle("is-selected", b.dataset.cardio === T.cardioType));
+  }));
+
+  // Wire workout builder
+  if (isStrength && T.showBuilder) {
+    if (!T.exercises.length) T.exercises = [{name:"",sets:"",reps:""}];
+    renderExerciseList();
+
+    document.getElementById("wb-add-btn")?.addEventListener("click", () => {
+      T.exercises.push({name:"",sets:"",reps:""}); renderExerciseList();
+    });
+    document.getElementById("wb-save-btn")?.addEventListener("click", () => {
+      const area = document.getElementById("wb-save-name-area");
+      if (area.innerHTML) { area.innerHTML=""; return; }
+      area.innerHTML = `<div class="wb-save-name-row">
+        <input class="wb-name-input" id="wb-template-name" placeholder="Name this workout (e.g. Push A)" maxlength="40">
+        <button class="wb-confirm-save" id="wb-confirm-save">Save</button>
+      </div>`;
+      document.getElementById("wb-confirm-save")?.addEventListener("click", async () => {
+        const name = document.getElementById("wb-template-name")?.value?.trim();
+        if (!name) return;
+        const validExercises = T.exercises.filter(e => e.name?.trim());
+        if (!validExercises.length) return;
+        await dbSaveTemplate(name, validExercises, rec.splitTarget || "any");
+        T.loadedTemplate = name;
+        area.innerHTML = `<p class="quiet-note" style="text-align:left;padding:8px 0;">"${esc(name)}" saved.</p>`;
+      });
+    });
+    document.querySelectorAll(".wb-template-pill").forEach(btn => btn.addEventListener("click", () => {
+      const tName = btn.dataset.tpl;
+      const tpl = templates.find(t => t.name === tName);
+      if (tpl) { T.exercises = tpl.exercises.map(e=>({...e})); T.loadedTemplate = tName; renderExerciseList(); }
+    }));
+  }
+
+  // Wire core actions
   document.getElementById("done-btn").addEventListener("click", () => completeSession(rec));
   document.getElementById("adjust-btn").addEventListener("click", () => {
     T.showChange = !T.showChange; renderInputPhase(history, banner);
@@ -890,19 +1053,44 @@ function renderInputPhase(history, banner) {
     T.lighter = !T.lighter; renderInputPhase(history, banner);
   });
   document.querySelectorAll("[data-force]").forEach(btn => btn.addEventListener("click", () => {
+    const prev = T.forceActivity;
     T.forceActivity = T.forceActivity===btn.dataset.force ? null : btn.dataset.force;
+    // Clear workout state when switching activity types
+    if (prev !== T.forceActivity) { T.exercises=[]; T.loadedTemplate=null; T.cardioType=null; T.showBuilder=false; }
     renderInputPhase(history, banner);
   }));
 
   if (!isToday) bindBackBtn();
 
-  // Always append past-log for today view
   if (isToday) {
     const plDiv = document.createElement("div");
     plDiv.innerHTML = buildPastLogHtml();
     document.getElementById("today-body").appendChild(plDiv);
     wirePastLog(history);
   }
+}
+
+function renderExerciseList() {
+  const list = document.getElementById("wb-exercise-list");
+  if (!list) return;
+  if (!T.exercises.length) T.exercises = [{name:"",sets:"",reps:""}];
+  list.innerHTML = T.exercises.map((ex,i) => buildExerciseRowHtml(ex,i)).join("");
+  // Wire inputs
+  list.querySelectorAll("[data-field]").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const i = parseInt(inp.dataset.idx);
+      const f = inp.dataset.field;
+      T.exercises[i][f] = inp.value;
+    });
+  });
+  list.querySelectorAll("[data-remove]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const i = parseInt(btn.dataset.remove);
+      T.exercises.splice(i,1);
+      if (!T.exercises.length) T.exercises = [{name:"",sets:"",reps:""}];
+      renderExerciseList();
+    });
+  });
 }
 
 /* Past-log section - accessible from all Today states */
@@ -935,6 +1123,16 @@ function wirePastLog(history) {
 
 function completionHtml(entry) {
   const msg = seededPick(DONE_MSGS, entry.date);
+  const cardioLabel = entry.cardioType ? ` &middot; ${entry.cardioType.charAt(0).toUpperCase()+entry.cardioType.slice(1)}` : "";
+  const exerciseList = entry.exercises && entry.exercises.length ? `
+    <div style="margin-top:18px;text-align:left;">
+      <div style="font-size:9.5px;font-weight:500;letter-spacing:0.13em;text-transform:uppercase;color:var(--text-3);margin-bottom:10px;">${entry.workoutName ? esc(entry.workoutName) : "Exercises"}</div>
+      ${entry.exercises.map(e => `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:14px;font-weight:300;color:var(--text-1);">${esc(e.name)}</span>
+          <span style="font-size:12px;font-weight:300;color:var(--text-3);">${e.sets||"—"} × ${e.reps||"—"}</span>
+        </div>`).join("")}
+    </div>` : "";
   return `
     <div class="completion-wrap">
       <div class="completion-card">
@@ -945,7 +1143,8 @@ function completionHtml(entry) {
         </div>
         <div class="completion-heading">${esc(msg.h)}</div>
         <div class="completion-sub">${esc(msg.s)}</div>
-        <div class="completion-chip">${esc(entry.recommendation)}</div>
+        <div class="completion-chip">${esc(entry.recommendation)}${cardioLabel}</div>
+        ${exerciseList}
       </div>
       <p class="quiet-note">See you tomorrow.</p>
     </div>`;
@@ -955,13 +1154,17 @@ async function completeSession(rec) {
   if (!rec) return;
   const ad      = activeDate();
   const isToday = ad === todayStr();
+  const validExercises = T.exercises.filter(e => e.name?.trim());
   const entry   = {
     date: ad, savedAt: new Date().toISOString(),
     energy:       T.lighter ? "low"  : "medium",
     timeAvailable:T.lighter ? "10"   : "30+",
     recommendation: rec.title, rationale: rec.rationale,
     activityType: rec.activityType, splitTarget: rec.splitTarget || null,
-    completed: true
+    completed: true,
+    cardioType: rec.activityType==="cardio" ? (T.cardioType||null) : null,
+    exercises: rec.activityType==="strength" && validExercises.length ? validExercises : null,
+    workoutName: rec.activityType==="strength" ? (T.loadedTemplate||null) : null
   };
   const pastBanner = !isToday ? `
     <div class="date-view-banner">
@@ -1084,13 +1287,16 @@ async function renderHistory() {
   for (const g of groups) {
     html += `<div class="week-group-header">${g.label}</div>`;
     for (const e of g.rows) {
+      const cardioMeta = e.cardioType ? ` &middot; ${e.cardioType.charAt(0).toUpperCase()+e.cardioType.slice(1)}` : "";
+      const exerciseMeta = e.exercises && e.exercises.length ? ` &middot; ${e.exercises.length} exercise${e.exercises.length!==1?"s":""}` : "";
+      const workoutMeta = e.workoutName ? ` &middot; ${esc(e.workoutName)}` : exerciseMeta;
       html += `
         <div class="history-row" style="animation-delay:${idx*24}ms">
           <div class="h-status ${e.completed?"done":"skipped"}">${e.completed?checkSvg:crossSvg}</div>
           <div class="h-body">
             <div class="h-date">${formatShort(e.date)}</div>
-            <div class="h-rec">${esc(e.recommendation)}</div>
-            <div class="h-meta">${esc(e.activityType||"")}${e.activityType&&e.timeAvailable?" &middot; ":""}${esc(e.timeAvailable||"")}${e.timeAvailable?" min":""}</div>
+            <div class="h-rec">${esc(e.recommendation)}${cardioMeta}</div>
+            <div class="h-meta">${esc(e.activityType||"")}${e.activityType&&e.timeAvailable?" &middot; ":""}${esc(e.timeAvailable||"")}${e.timeAvailable?" min":""}${workoutMeta}</div>
           </div>
         </div>`;
       idx++;
