@@ -231,6 +231,9 @@
     .wb-input:focus{border-color:var(--accent);}
     .wb-input::placeholder{color:var(--text-3);}
     .wb-num{text-align:center;padding:10px 6px;}
+    .wb-reps{text-align:center;}
+    input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+    input[type=number]{-moz-appearance:textfield;}
     .wb-remove{width:28px;height:28px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--border);color:var(--text-3);font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--t-fast) ease;cursor:pointer;}
     .wb-remove:hover{border-color:#c47a7a;color:#c47a7a;}
     .wb-col-headers{display:grid;grid-template-columns:1fr 52px 52px 28px;gap:6px;margin-bottom:4px;}
@@ -496,6 +499,7 @@ const T = {
   cardioType:    null,   // 'run' | 'bike' | 'swim' | 'row' | 'walk' | null
   exercises:     [],     // [{name, sets, reps}]
   loadedTemplate: null,  // template name currently loaded
+  sessionName:   "",     // custom name for current session plan
   showBuilder:   false   // whether workout builder panel is expanded
 };
 
@@ -907,15 +911,22 @@ function obRender() {
       return t && t.some(e => e.name && e.name.trim());
     });
 
+    const defaultName = OB.programTemplates[key+"_name"] || splitLabels[key] || key;
     body.innerHTML = `
-      <div class="ob-question" style="animation:rise 300ms var(--ease) both;">${splitLabels[key]||key}</div>
-      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">Add your exercises. Sets and reps optional.</div>
+      <div class="ob-question" style="animation:rise 300ms var(--ease) both;">Name this workout</div>
+      <div class="ob-sub" style="animation:rise 300ms var(--ease) 60ms both;">Then add your exercises. Sets and reps optional.</div>
+      <input class="wb-input" type="text" id="ob-workout-name" placeholder="${esc(splitLabels[key]||key)}" value="${esc(OB.programTemplates[key+"_name"]||"")}" style="margin-bottom:20px;font-size:15px;" maxlength="40">
       ${tabBar}
-      <div class="wb-col-headers" style="margin-bottom:6px;">
+      <div class="wb-col-headers" style="margin-bottom:2px;">
         <div class="wb-col-hdr">Exercise</div>
         <div class="wb-col-hdr">Sets</div>
         <div class="wb-col-hdr">Reps</div>
         <div class="wb-col-hdr"></div>
+      </div>
+      <div class="wb-col-headers" style="margin-top:-6px;margin-bottom:8px;">
+        <div></div><div></div>
+        <div class="wb-col-hdr" style="font-size:8px;font-weight:300;letter-spacing:0.04em;text-transform:none;color:var(--text-3);">e.g. 8–12</div>
+        <div></div>
       </div>
       <div id="ob-ex-list">
         ${exRows}
@@ -925,6 +936,11 @@ function obRender() {
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
           <button class="ob-next" id="ob-next-split" style="width:100%;padding:16px;">Next: ${splitLabels[splitKeys[idx+1]]||splitKeys[idx+1]}</button>
         </div>` : ""}`;
+
+    // Wire workout name input
+    document.getElementById("ob-workout-name")?.addEventListener("input", e => {
+      OB.programTemplates[key+"_name"] = e.target.value;
+    });
 
     // Wire tab switching
     body.querySelectorAll("[data-splitidx]").forEach(btn => {
@@ -944,7 +960,7 @@ function obRender() {
         <div class="wb-exercise-row">
           <input class="wb-input" type="text" placeholder="Exercise name" value="${esc(ex.name||"")}" data-exfield="name" data-idx="${i}">
           <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="3" value="${ex.sets||""}" data-exfield="sets" data-idx="${i}">
-          <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="10" value="${ex.reps||""}" data-exfield="reps" data-idx="${i}">
+          <input class="wb-input wb-num wb-reps" type="text" placeholder="8–12" value="${esc(ex.reps||"")}" data-exfield="reps" data-idx="${i}">
           <button class="wb-remove" data-obremove="${i}">&#215;</button>
         </div>`).join("");
       clone.addEventListener("input", e => {
@@ -1024,7 +1040,8 @@ document.getElementById("ob-next").addEventListener("click", async () => {
         const exs = OB.programTemplates[key] || [];
         const valid = exs.filter(e => e.name && e.name.trim());
         if (valid.length) {
-          const name = splitLabels[key] || key;
+          const customName = OB.programTemplates[key+"_name"]?.trim();
+          const name = customName || splitLabels[key] || key;
           await dbSaveTemplate(name, valid, key);
         }
       }
@@ -1049,7 +1066,7 @@ async function renderToday() {
   const isToday = ad === todayStr();
 
   // Reset transient state when loading today fresh
-  if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; T.cardioType=null; T.exercises=[]; T.loadedTemplate=null; T.showBuilder=false; }
+  if (isToday) { T.lighter=false; T.forceActivity=null; T.showChange=false; T.cardioType=null; T.exercises=[]; T.loadedTemplate=null; T.sessionName=""; T.showBuilder=false; }
 
   const firstName = currentUser?.displayName?.split(" ")[0] || "";
   const greetBase = isToday ? getGreeting() : formatFull(ad);
@@ -1105,7 +1122,7 @@ function buildExerciseRowHtml(ex, i) {
   return `<div class="wb-exercise-row" data-idx="${i}">
     <input class="wb-input" type="text" placeholder="Exercise name" value="${esc(ex.name||"")}" data-field="name" data-idx="${i}">
     <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="3" value="${ex.sets||""}" data-field="sets" data-idx="${i}">
-    <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="10" value="${ex.reps||""}" data-field="reps" data-idx="${i}">
+    <input class="wb-input wb-num wb-reps" type="text" placeholder="8–12" value="${esc(ex.reps||"")}" data-field="reps" data-idx="${i}">
     <button class="wb-remove" data-remove="${i}" title="Remove">&#215;</button>
   </div>`;
 }
@@ -1120,10 +1137,17 @@ function buildWorkoutBuilderHtml(templates, splitKey) {
     <div class="workout-builder" id="workout-builder">
       <div class="wb-label">Plan your session</div>
       ${templatePills}
+      <input class="wb-input" type="text" id="wb-session-name" placeholder="Session name (e.g. Push A, Upper 1…)" value="${esc(T.sessionName||"")}" style="margin-bottom:14px;">
       <div class="wb-col-headers">
         <div class="wb-col-hdr">Exercise</div>
         <div class="wb-col-hdr">Sets</div>
         <div class="wb-col-hdr">Reps</div>
+        <div class="wb-col-hdr"></div>
+      </div>
+      <div class="wb-col-headers" style="margin-top:-8px;margin-bottom:8px;">
+        <div class="wb-col-hdr"></div>
+        <div class="wb-col-hdr" style="font-size:8px;opacity:0.6;letter-spacing:0.06em;text-transform:none;font-weight:300;color:var(--text-3);"></div>
+        <div class="wb-col-hdr" style="font-size:8px;opacity:0.6;letter-spacing:0.06em;text-transform:none;font-weight:300;color:var(--text-3);">e.g. 8–12</div>
         <div class="wb-col-hdr"></div>
       </div>
       <div class="wb-exercise-list" id="wb-exercise-list"></div>
@@ -1195,6 +1219,11 @@ async function renderInputPhase(history, banner) {
     renderInputPhase(history, banner);
   });
 
+  // Wire session name input
+  document.getElementById("wb-session-name")?.addEventListener("input", e => {
+    T.sessionName = e.target.value;
+  });
+
   // Wire cardio type pills
   document.querySelectorAll("[data-cardio]").forEach(btn => btn.addEventListener("click", () => {
     T.cardioType = T.cardioType === btn.dataset.cardio ? null : btn.dataset.cardio;
@@ -1213,7 +1242,7 @@ async function renderInputPhase(history, banner) {
       const area = document.getElementById("wb-save-name-area");
       if (area.innerHTML) { area.innerHTML=""; return; }
       area.innerHTML = `<div class="wb-save-name-row">
-        <input class="wb-name-input" id="wb-template-name" placeholder="Name this workout (e.g. Push A)" maxlength="40">
+        <input class="wb-name-input" id="wb-template-name" placeholder="Name this workout (e.g. Push A)" maxlength="40" value="${esc(T.sessionName||T.loadedTemplate||"")}">
         <button class="wb-confirm-save" id="wb-confirm-save">Save</button>
       </div>`;
       document.getElementById("wb-confirm-save")?.addEventListener("click", async () => {
@@ -1229,7 +1258,7 @@ async function renderInputPhase(history, banner) {
     document.querySelectorAll(".wb-template-pill").forEach(btn => btn.addEventListener("click", () => {
       const tName = btn.dataset.tpl;
       const tpl = templates.find(t => t.name === tName);
-      if (tpl) { T.exercises = tpl.exercises.map(e=>({...e})); T.loadedTemplate = tName; renderExerciseList(); }
+      if (tpl) { T.exercises = tpl.exercises.map(e=>({...e})); T.loadedTemplate = tName; T.sessionName = tName; renderExerciseList(); document.getElementById("wb-session-name") && (document.getElementById("wb-session-name").value = tName); }
     }));
   }
 
@@ -1246,7 +1275,7 @@ async function renderInputPhase(history, banner) {
     const prev = T.forceActivity;
     T.forceActivity = T.forceActivity===btn.dataset.force ? null : btn.dataset.force;
     // Clear workout state when switching activity types
-    if (prev !== T.forceActivity) { T.exercises=[]; T.loadedTemplate=null; T.cardioType=null; T.showBuilder=false; }
+    if (prev !== T.forceActivity) { T.exercises=[]; T.loadedTemplate=null; T.sessionName=""; T.cardioType=null; T.showBuilder=false; }
     renderInputPhase(history, banner);
   }));
 
@@ -1360,7 +1389,7 @@ async function completeSession(rec) {
     completed: true,
     cardioType: rec.activityType==="cardio" ? (T.cardioType||null) : null,
     exercises: rec.activityType==="strength" && validExercises.length ? validExercises : null,
-    workoutName: rec.activityType==="strength" ? (T.loadedTemplate||null) : null
+    workoutName: rec.activityType==="strength" ? (T.sessionName?.trim() || T.loadedTemplate || null) : null
   };
   const pastBanner = !isToday ? `
     <div class="date-view-banner">
