@@ -898,13 +898,7 @@ function obRender() {
           <button style="padding:7px 16px;border-radius:100px;border:1.5px solid ${i===idx?"var(--text-1)":"var(--border)"};background:${i===idx?"var(--text-1)":"transparent"};color:${i===idx?"rgba(255,255,255,0.9)":"var(--text-2)"};font-size:12px;font-weight:${i===idx?"400":"300"};white-space:nowrap;font-family:var(--sans);cursor:pointer;transition:all 160ms ease;" data-splitidx="${i}">${splitLabels[k]||k}</button>`).join("")}
       </div>` : "";
 
-    const exRows = exs.map((ex,i) => `
-      <div class="wb-exercise-row" data-idx="${i}" id="ob-ex-${i}">
-        <input class="wb-input" type="text" placeholder="Exercise name" value="${esc(ex.name||"")}" data-exfield="name" data-idx="${i}">
-        <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="3" value="${ex.sets||""}" data-exfield="sets" data-idx="${i}">
-        <input class="wb-input wb-num" type="number" min="1" max="99" placeholder="10" value="${ex.reps||""}" data-exfield="reps" data-idx="${i}">
-        <button class="wb-remove" data-obremove="${i}">&#215;</button>
-      </div>`).join("");
+
 
     const allDone = splitKeys.every(k => {
       const t = OB.programTemplates[k];
@@ -928,9 +922,7 @@ function obRender() {
         <div class="wb-col-hdr" style="font-size:8px;font-weight:300;letter-spacing:0.04em;text-transform:none;color:var(--text-3);">e.g. 8–12</div>
         <div></div>
       </div>
-      <div id="ob-ex-list">
-        ${exRows}
-      </div>
+      <div id="ob-ex-list"></div>
       <button class="wb-add-btn" id="ob-add-ex" style="margin-top:10px;">+ Add exercise</button>
       ${splitKeys.length > 1 && idx < splitKeys.length - 1 ? `
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
