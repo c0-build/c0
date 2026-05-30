@@ -1392,9 +1392,7 @@ async function completeSession(rec) {
     await dbSave(entry);
   } catch (err) {
     console.error("dbSave failed:", err);
-    alert("Could not save your workout: " + (err?.message || err) + "
-
-It was not saved. Check your connection and try again.");
+    alert("Could not save your workout. It was not saved. Reason: " + (err && err.message ? err.message : err));
     return;
   }
   document.getElementById("today-body").innerHTML = pastBanner + completionHtml(entry);
